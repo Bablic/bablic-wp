@@ -16,11 +16,11 @@ class bablic {
 	var $options_name = 'bablic_item';
 	var $options_group = 'bablic_option_option';
 	var $options_page = 'bablic';
-	var $plugin_homepage = 'https://www.bablic.com/docs#wordpress';
-	var $bablic_docs = 'https://www.bablic.com/docs';
+	var $plugin_homepage = 'https://www.bablic.com/integrations/wordpress';
+	var $bablic_docs = 'https://www.bablic.com/documentation';
 	var $plugin_name = 'Bablic';
 	var $plugin_textdomain = 'Bablic';
-	var $bablic_version = '3.1';
+	var $bablic_version = '3.3';
     var $query_var = 'bablic_locale';
 	
 	
@@ -53,7 +53,6 @@ class bablic {
 
         // on plugin activate/de-activate
 		register_activation_hook( __FILE__, array( &$this, 'optionsCompat' ) );
-		register_activation_hook( __FILE__, array( &$this, 'site_create' ) );
         register_activation_hook(__FILE__, array(&$this, 'flush_rules'));
         register_deactivation_hook(__FILE__, array(&$this, 'flush_rules'));
 		
@@ -82,12 +81,14 @@ class bablic {
         // register ajax hook
         add_action('wp_ajax_bablicHideRating',array(&$this, 'bablic_hide_rating'));
         add_action('wp_ajax_bablicClearCache',array(&$this, 'bablic_clear_cache'));
-        add_action('wp_ajax_nopriv_bablicWebhook', array(&$this, 'bablic_webhook_callback'));
-		
+
+        add_action('wp_ajax_bablicSettings',array(&$this, 'bablic_settings_save'));
+
 		add_action( 'rest_api_init', array( $this, 'register_routes' ) );
-		 $this->sdk = new BablicSDK(
+		$this->sdk = new BablicSDK(
             array(
-                'channel_id' => 'wp'
+                'channel_id' => 'wp',
+                'subdir' => $options['dont_permalink'] == 'no'
             )
         );
 	}
@@ -103,8 +104,6 @@ class bablic {
 		echo "OK"; exit;
 	}
 
-	function after_footer(){
-	}
 
     function site_create(){
         $url = get_site_url();
@@ -124,45 +123,17 @@ class bablic {
     }
 
     function before_header(){
-		$options = $this->optionsGetOptions();
-        $this->sdk = new BablicSDK(
-            array(
-                'channel_id' => 'wp'
-            )
-        );
-        if(!is_admin()){
-            if($options['site_id'] != ''){
-                $this->sdk->handle_request(
-                    array(
-                        'site_id' => $options['site_id']
-                    )
-                );
-            }
-        }
+        if(!is_admin())
+            $this->sdk->handle_request();
 	}
 
 	function after_header(){
-		$this->after_footer();
+	    // for log
 	}
 
 
-	function get_locale_from_url($url){
-		$options = $this->optionsGetOptions();
-		$locales = $options['locales'];
-		$locale_regex = '('.implode('|',$locales).')';
-		$pattern = '/^\\/'.$locale_regex.'\\//';
-		if(preg_match($pattern, $url, $matches))
-			return $matches[1];
-		
-		$pattern = '/(\?|&)'.$this->query_var.'='.$locale_regex.'/';
-		if(preg_match($pattern, $url, $matches))
-			return $matches[2];
-		$pattern = '/(\?|&)locale='.$locale_regex.'/';
-		if(preg_match($pattern, $url, $matches))
-			return $matches[2];
-		return $options['orig'];
-	}
-	function get_locale($lang){
+
+	function get_locale($lang=''){
 	    if(is_admin())
             return $lang;
 		$header = (isset($_SERVER['HTTP_BABLIC_LOCALE']) ? $_SERVER['HTTP_BABLIC_LOCALE'] : null);
@@ -170,42 +141,25 @@ class bablic {
 		if($header){
 			$bablic_locale = $header;
 		}
-		$url = $_SERVER['REQUEST_URI'];
-		$bablic_locale = $this->get_locale_from_url($url);
-		$options = $this->optionsGetOptions();
-		if(!$bablic_locale || $bablic_locale == $options['orig'])
+		else {
+            $bablic_locale = $sdk->get_locale();
+		}
+		if($bablic_locale == $sdk->get_original())
 		    return $lang;
         return $bablic_locale;
 	}
 	
-
-	function make_locale_url($url,$locale,$is_sub_dir){
-		if($is_sub_dir) {
-			$prefix = $locale . '/';				
-			if(strpos($url,'//') !== false)
-				$url = preg_replace('/\/\/([^\/]+)\//', '//$1/'.$prefix, $url);	
-			else
-				$url = $prefix . $url;
-			return str_replace('/'.$prefix.$prefix,'/'.$prefix,$url);
-		}
-		if(strpos($url,$this->query_var .'=') !== false)
-			return $url;
-		if(strpos($url,'?') !== false)
-			return $url . '&'. $this->query_var .'=' . $locale;
-		return $url . '?'. $this->query_var .'=' . $locale;
-	}
-	
-	function append_prefix( $url){
+	function append_prefix($url){
 		global $wp_rewrite;
 	    $is_sub_dir = ($wp_rewrite->permalink_structure) !== '';
 		$options = $this->optionsGetOptions();	
 		if($options['dont_permalink'] == 'yes')
 			return $url;
 
-	    $locale = $this->get_locale($options['orig']);
-		if($locale == $options['orig'])
+	    $locale = $this->get_locale();
+		if($locale == '')
 			return $url;
-		return $this->make_locale_url($url,$locale,$is_sub_dir);
+		return $this->sdk->get_link($locale,$url);
 	}
 	 
 	function flush_rules(){
@@ -219,8 +173,7 @@ class bablic {
 		$options = $this->optionsGetOptions();
 		if($options['dont_permalink'] == 'yes')
 			return $old_rules;
-		$locales = $options['locales'];
-		
+		$locales = $this->sdk->get_locales();
         $locale_regex = "(" . implode("|",$locales) . ")/";
         $locale_replace = "&".$this->query_var."=\$matches[1]";
 
@@ -240,14 +193,6 @@ class bablic {
         return $new_rules;
     }
 	
-
-	// Adding the id var so that WP recognizes it
-    function bablic_insert_query_vars( $vars )
-    {
-        array_push($vars, $this->query_var);
-        //array_push($vars, 'what');
-        return $vars;
-    }
 
 	// load i18n textdomain
 	function loadTextDomain() {
@@ -273,11 +218,6 @@ class bablic {
 	// get default plugin options
 	function optionsGetDefaults() { 
 		$defaults = array( 
-			'site_id' => '',
-			'version' => '3.1',
-			'data' => '',
-			'locales' => array('en','es','fr','it'),
-			'orig' => 'en',
 			'dont_permalink' => 'yes',
 			'date' => '',
 			'rated' => 'no'
@@ -313,7 +253,7 @@ class bablic {
 			$newlinks = array( '<a href="options-general.php?page=' . $this->options_page . '">' . __( 'Settings', $this->plugin_textdomain ) . '</a>' ); // array of links to add
 			return array_merge( $links, $newlinks ); // merge new links into existing $links
 		}
-	return $links; // return the $links (merged or otherwise)
+        return $links; // return the $links (merged or otherwise)
 	}
 	
 	// plugin startup
@@ -321,18 +261,18 @@ class bablic {
 		register_setting( $this->options_group, $this->options_name, array( &$this, 'optionsValidate' ) );
 	}
 
-	    function addAdminScripts($hook_suffix){
-            global $my_settings_page;
+    function addAdminScripts($hook_suffix){
+        global $my_settings_page;
 
-            wp_enqueue_script(
-                    'bablic-admin-sdk',
-                    '//cdn2.bablic.com/js/sdk.min.js'
-                );
-            wp_enqueue_script(
-                    'bablic-admin',
-                    plugins_url('/admin.js?r=7', __FILE__)
-                );
-        }
+        wp_enqueue_script(
+                'bablic-admin-sdk',
+                '//cdn2.bablic.com/js/sdk.min.js'
+            );
+        wp_enqueue_script(
+                'bablic-admin',
+                plugins_url('/admin.js?r=7', __FILE__)
+            );
+    }
 	
 	// create and link options page
 	function optionsAddPage() {
@@ -341,19 +281,8 @@ class bablic {
 
 		
         add_action( 'admin_enqueue_scripts',array( &$this, 'addAdminScripts' ));
-		
-		add_action('load-'.$my_settings_page,array(&$this,'do_on_my_plugin_settings_save'));
-
  	}
 	
-	function do_on_my_plugin_settings_save(){
-	  if(isset($_GET['settings-updated']) && $_GET['settings-updated'])
-	   {
-		    global $wp_rewrite;
-    	   	$wp_rewrite->flush_rules();
-	   }
-	}
-
 	function log($stuff){
 	      //array_push($this->log,$stuff);
 	}
@@ -362,84 +291,69 @@ class bablic {
 
 	// sanitize and validate options input
 	function optionsValidate( $input ) { 
-		$input['activate'] = ( $input['activate'] ? 1 : 0 ); 	// (checkbox) if TRUE then 1, else NULL
 		return $input;
 	}
 
-	// draw a checkbox option
-	function optionsDrawCheckbox( $slug, $label, $style_checked='', $style_unchecked='' ) { 
-		$options = $this->optionsGetOptions();
-		if( !$options[$slug] ) 
-			if( !empty( $style_unchecked ) ) $style = ' style="' . $style_unchecked . '"';
-			else $style = '';
-		else
-			if( !empty( $style_checked ) ) $style = ' style="' . $style_checked . '"';
-			else $style = ''; 
-	?>
-		 <!-- <?php _e( $label, $this->plugin_textdomain ); ?> -->
-			<tr valign="top">
-				<th scope="row">
-					<label<?php echo $style; ?> for="<?php echo $this->options_name; ?>[<?php echo $slug; ?>]">
-						<?php _e( $label, $this->plugin_textdomain ); ?>
-					</label>
-				</th>
-				<td>
-					<input id="<?php echo $this->options_name; ?>_<?php echo $slug; ?>"  name="<?php echo $this->options_name; ?>[<?php echo $slug; ?>]" type="checkbox" value="1" <?php checked( $options[$slug], 1 ); ?>/>
-				</td>
-			</tr>
-			
-	<?php }
 	
 	// draw the options page
 	function optionsDrawPage() { 
 		$options = $this->optionsGetOptions();
-		$isFirstTime = $options['site_id'] == '';
+		$isFirstTime = $this->sdk->site_id == '';;
 	?>
 		<div class="wrap" style="background: #fff; padding: 5px;">
 		<div class="icon32" id="icon-options-general"><br /></div>
 			<h2><?php echo $this->plugin_name; ?></h2>
 			<form name="form1" id="form1" method="post" action="options.php">
 				<?php settings_fields( $this->options_group ); // nonce settings page ?>
-				<!-- Description -->
-				<p style="font-size:0.95em"><?php 
-				echo $isFirstTime ? __('Bablic makes Wordpress translation easy. Just click START NOW below in order to translate your website through our user-friendly editor.', $this->plugin_textdomain) :
-				__('Have any questions or concerns? Need help? Email <a href="mailto:support@bablic.com">support@bablic.com</a> for free support.'); ?></p>
-				<table class="form-table">
-	
-
-	
-					<tr valign="top">
-						<td>
-						<?php if(!$isFirstTime) { ?>						
-						To make translation changes, visit Bablic's editor by clicking the button below: <br><br>
-						<?php } ?>
-							<input type="hidden" id="bablic_item_site_id"  name="<?php echo $this->options_name; ?>[site_id]" value="<?php echo $options['site_id']; ?>" style="width:400px;" />
-							<input type="hidden" id="bablic_item_version"  name="<?php echo $this->options_name; ?>[version]" value="<?php echo $options['version']; ?>" style="width:400px;" />
-							<input type="hidden" id="bablic_item_data"  name="<?php echo $this->options_name; ?>[data]" value="<?php echo $options['data']; ?>" style="width:400px;" />
-							<button id="bablic_login" class="button button-primary"><?php echo $isFirstTime ? 'START NOW' : 'BABLIC EDITOR' ?></button>
-						</td>
-					</tr>
-					
-				</table>
-				<div>
-				<div id="bablicLoggedIn">				    
-					<input type="hidden" id="bablic_item_orig" name="<?php echo $this->options_name; ?>[orig]" value="<?php echo $options['orig']; ?>" />
-					<?php foreach($options['locales'] as $i => $locale): ?>
-						<input type="hidden" id="bablic_item_locales[<?php echo $i; ?>]" name="<?php echo $this->options_name; ?>[locales][<?php echo $i; ?>]" value="<?php echo $locale; ?>" />
-					<?php endforeach; ?>
+				<input type="hidden" id="bablic_item_site_id"  value="<?php echo $this->sdk->site_id; ?>" />
+				<div class="bablicFirstTime">
+				    <p style="font-size:0.95em">
+				        Bablic makes Wordpress translation easy. Just click "I'm new to Bablic" below in order to translate your website through our user-friendly editor. If you already have registered to Bablic, click "I'm already signed up with Bablic"
+                    </p>
+                    <table class="form-table">
+                        <tr valign="top">
+                            <td>
+                                <button id="bablicCreate">I'm new to Bablic</button>
+                                <button id="bablicSet">I'm already signed-up with Bablic</button>
+                            </td>
+                        </tr>
+                    </table>
 				</div>
-				<?php if(!$isFirstTime) { ?>
-				<div>
-					<h3>Settings</h3>
-					<input type="hidden" id="bablic_dont_permalink_hidden" name="<?php echo $this->options_name; ?>[dont_permalink]" value="<?php echo $options['dont_permalink']; ?>" />
-					<label><input type="checkbox" id="bablic_dont_permalink" <?php checked( 'no', $options['dont_permalink'], true ) ?>  > Generate SEO-friendly localization urls (for example: /es/, /fr/about, ...)</label>
-					<br><br>
-					<button id="bablic_clear_cache" type="button" class="button">Clear SEO Cache</button>
+				<div class="bablicSecondTime">
+				    <p style="font-size:0.95em">
+                        Have any questions or concerns? Need help? Email <a href="mailto:support@bablic.com">support@bablic.com</a> for free support.
+                    </p>
+                    <table class="form-table">
+                        <tr valign="top">
+                            <td>
+                                To make translation changes, visit Bablic's editor by clicking the button below: <br><br>
+                                <button id="bablicEditor" data-url="<?php echo $this->sdk->editor_url() ?>">Open Editor</button>
+                            </td>
+                        </tr>
+                        <tr>
+                            <td>
+                                <h3>Settings</h3>
+                            </td>
+                        </tr>
+                        <tr>
+                            <td>
+                                <label><input type="checkbox" id="bablic_dont_permalink" <?php checked( 'no', $options['dont_permalink'], true ) ?>  > Generate SEO-friendly localization urls (for example: /es/, /fr/about, ...)</label>
+                            </td>
+                        </tr>
+                        <tr>
+                            <td>
+                                <button id="bablic_clear_cache" type="button" class="button">Clear SEO Cache</button>
+                            </td>
+                        </tr>
+                        <tr>
+                            <td>
+                                <button id="bablic_delete_account" type="button" class="button">Delete Bablic Account</button>
+                            </td>
+                        </tr>
+                    </table>
 				</div>
-				<?php } ?>
-				</div>
-		 			</form>
-         		</div>
+            </form>
+        </div>
 
 		<?php
 	} 
@@ -447,52 +361,12 @@ class bablic {
 	// 	the Bablic snippet to be inserted
 	function getBablicCode() { 
 		global $wp_rewrite;
-		$options = $this->optionsGetOptions();
-		
-	    $is_sub_dir = $options['dont_permalink'] == 'no' && ($wp_rewrite->permalink_structure) !== '';
-		
-		$url = $_SERVER['REQUEST_URI'];
-	    $locale = $this->get_locale($options['orig']);
-		$locales = $options['locales'];
-		$locale_regex = "(" . implode("|",$locales) . ")";		
-		$no_locale = preg_replace('/^\/'.$locale_regex.'\//','/',$url);
-		$no_locale = preg_replace('/(\\?|&)'.$this->query_var.'='.$locale_regex.'/','$1',$no_locale);
-		$no_locale = substr($no_locale,1);
-		if($is_sub_dir) {
-            foreach( $locales as $alt){
-                if($alt != $locale)
-                    echo '<link rel="alternate" href="/' . $this->make_locale_url($no_locale,$alt,$is_sub_dir) . '" hreflang="'.$alt.'">';
-            }
-            if($locale != $options['orig'])
-                echo '<link rel="alternate" href="/' . $no_locale . '" hreflang="'.$options['orig'].'">';
-		}
-			
-    	// header
-    	$header = '<!-- start Bablic -->';
-    
-    	// footer
-    	$footer = '<!-- end Bablic -->';
-
-    	// code removed for all pages
-    	$disabled = $header .  $footer;
-
-
-    	// core snippet
-    	$core = sprintf('
-    	   <script type="text/javascript">var bablic=bablic||{};bablic.locale="%2$s",bablic.localeURL="%3$s"</script>
-    	   %1$s
-           <script>
-                bablic.exclude("#wpadminbar,#wp-admin-bar-my-account");
-           </script>
-    	       ', $this->sdk->get_snippet(), $is_sub_dir ? $locale : '', $is_sub_dir ? 'subdir' : 'querystring', $options['version'], $options['data']);
-    	
-	// build code
-    	if( $options['site_id'] == '' )
-    		echo $disabled; 
-    	elseif( is_admin())
-    		echo ""; 
-    	else
-    		echo $header . "\n\n"  . $core . "\n\n" . $footer ;
+		if(is_admin())
+		    return;
+        echo <!-- start Bablic -->';
+        echo $this->sdk->get_snippet();
+        echo '<script>bablic.exclude("#wpadminbar,#wp-admin-bar-my-account");</script>';
+        echo '<!-- end Bablic -->';
     }
 
 	function bablic_admin_messages() {
@@ -544,10 +418,36 @@ class bablic {
     }
 
     function bablic_clear_cache(){
-        $options = $this->optionsGetOptions();
-        $sdk = new BablicSDK(array('site_id'=> $options['site_id']));
-		$sdk->clear_cache();
+		$this->sdk->clear_cache();
         echo json_encode(array("success")); exit;
+    }
+
+    function bablic_settings_save(){
+        $data = $_POST['data'];
+        switch($data['action']){
+            case 'create':
+                $this->site_create();
+                break;
+            case 'set':
+                $site_id = $data['site'];
+                $url = get_site_url();
+                $this->sdk->set_site($site_id,"$url/wp-json/bablic/callback");
+                break;
+            case 'subdir':
+                $options = $this->optionsGetOptions();
+                $options['dont_permalink'] = $data['on'] ? 'no' : 'yes';
+                $this->updateOptions($options);
+                global $wp_rewrite;
+                $wp_rewrite->flush_rules();
+                break;
+            case 'delete':
+                $this->sdk->remove_site();
+                break;
+        }
+        echo json_encode(
+            'editor' => this->sdk->editor_url()
+        ); exit;
+        return;
     }
 	
 } // end class
