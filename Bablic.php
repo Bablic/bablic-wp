@@ -32,7 +32,7 @@ class bablic {
 	var $tcs;
 
 	// constructor
-	function bablic() {
+	function __construct() {
 		$options = $this->optionsGetOptions();
 		add_filter( 'plugin_row_meta', array( &$this, 'optionsSetPluginMeta' ), 10, 2 ); // add plugin page meta links
 		// plugin startup
@@ -363,7 +363,7 @@ class bablic {
 		global $wp_rewrite;
 		if(is_admin())
 		    return;
-        echo <!-- start Bablic -->';
+        echo '<!-- start Bablic -->';
         echo $this->sdk->get_snippet();
         echo '<script>bablic.exclude("#wpadminbar,#wp-admin-bar-my-account");</script>';
         echo '<!-- end Bablic -->';
@@ -444,9 +444,9 @@ class bablic {
                 $this->sdk->remove_site();
                 break;
         }
-        echo json_encode(
-            'editor' => this->sdk->editor_url()
-        ); exit;
+        echo json_encode(array(
+            'editor' => $this->sdk->editor_url()
+        )); exit;
         return;
     }
 	
