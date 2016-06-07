@@ -5,7 +5,7 @@ require_once("sdk.php");
 Plugin Name: Bablic
 Plugin URI: https://www.bablic.com/docs#wordpress'
 Description: Integrates your site with Bablic localization cloud service.
-Version: 2.0
+Version: 2.1
 Author: Ishai Jaffe
 Author URI: https://www.bablic.com
 License: GPLv3
@@ -443,6 +443,7 @@ class bablic {
     function bablic_clear_cache(){
 		header('Content-type: application/json');
 		$this->sdk->clear_cache();
+		$this->sdk->refresh_site();
         echo json_encode(array("success")); exit;
     }
 
