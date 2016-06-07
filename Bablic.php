@@ -40,12 +40,13 @@ class bablic {
 		// add setting page to admin
 		add_action( 'admin_menu', array( &$this, 'optionsAddPage' ) ); // add link to plugin's settings page in 'settings' menu on admin menu initilization
 		// add code in HTML head
-		add_action( 'wp_head', array( &$this, 'getBablicCode' ));
+		add_action( 'wp_head', array( &$this, 'writeHead' ));
+		add_action( 'wp_footer', array( &$this, 'writeFooter' ));
 
 		// before process buffer
 		add_action( 'parse_request', array( &$this, 'before_header' ),0);
 
-        add_action('shutdown', array(&$this, 'after_header'),9999999999);
+        //add_action('shutdown', array(&$this, 'after_header'),9999999999);
 
 		
 		
@@ -356,20 +357,39 @@ class bablic {
         </div>
 
 		<?php
+		
+		$this->sdk->refresh_site();
 	} 
 	
 	// 	the Bablic snippet to be inserted
-	function getBablicCode() { 
+	function writeHead() { 
 		if(is_admin())
 		    return;
-        echo '<!-- start Bablic2 -->';
-		$snippet = $this->sdk->get_snippet();
-        if($snippet != ''){
-			echo $snippet;
-			echo '<script>bablic.exclude("#wpadminbar,#wp-admin-bar-my-account");</script>';
+        echo '<!-- start Bablic Head -->';
+		$this->sdk->alt_tags();
+		if($this->sdk->get_locale() != $this->sdk->get_original()){
+			$snippet = $this->sdk->get_snippet();
+			if($snippet != ''){
+				echo $snippet;
+				echo '<script>bablic.exclude("#wpadminbar,#wp-admin-bar-my-account");</script>';
+			}
 		}
-        echo '<!-- end Bablic2 -->';
+        echo '<!-- end Bablic Head -->';
     }
+	
+	function writeFooter(){
+		if(is_admin())
+		    return;
+		if($this->sdk->get_locale() == $this->sdk->get_original()){
+			echo '<!-- start Bablic Footer -->';
+			$snippet = $this->sdk->get_snippet();
+			if($snippet != ''){
+				echo $snippet;
+				echo '<script>bablic.exclude("#wpadminbar,#wp-admin-bar-my-account");</script>';
+			}
+			echo '<!-- end Bablic Footer -->';
+		}
+	}
 
 	function bablic_admin_messages() {
 	    try{

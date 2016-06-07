@@ -178,6 +178,10 @@ class BablicSDK {
         $this->meta = json_encode($result['meta']);
         $this->save_data_to_store();
     }
+	
+	public function refresh_site(){
+		$this->get_site_from_bablic();
+	}
 
     public function clear_cache(){
         $tmp_dir = sys_get_temp_dir();
@@ -199,6 +203,7 @@ class BablicSDK {
     }
 
     public function get_snippet() {
+		//print_r($this->get_site());
         if($this->subdir)
             return '<script type="text/javascript">var bablic=bablic||{};bablic.localeURL="subdir"</script>'.$this->snippet;
         return $this->snippet;
@@ -211,10 +216,10 @@ class BablicSDK {
         $url = $_SERVER['REQUEST_URI'];
         foreach( $locale_keys as $alt){
             if($alt != $locale)
-                echo '<link rel="alternate" href="/' . $this->get_link($alt,$url) . '" hreflang="'.$alt.'">';
+                echo '<link rel="alternate" href="' . $this->get_link($alt,$url) . '" hreflang="'.$alt.'">';
         }
         if($locale != $meta['original'])
-            echo '<link rel="alternate" href="/' . $this->get_link($locale,$url) . '" hreflang="'.$locale.'">';
+            echo '<link rel="alternate" href="' . $this->get_link($locale,$url) . '" hreflang="'.$locale.'">';
     }
 
     private function get_all_headers() {
@@ -292,10 +297,10 @@ class BablicSDK {
                     return $scheme.$host.$port.$path.'?locale='.$locale.$fragment;
 
                 $output = array();
-                parse_str($query,$output);
+                parse_str(substr($query,1),$output);
                 $output['locale'] = $locale;
                 $query = http_build_query($output);
-                return $scheme.$host.$port.$path.$query.$fragment;
+                return $scheme.$host.$port.$path.'?'.$query.$fragment;
             case 'subdir':
                 $locale_keys = $meta['localeKeys'];
                 $locale_regex = "(" . implode("|",$locale_keys) . ")";
@@ -461,14 +466,12 @@ class BablicSDK {
             $contenttype_found = 0;
             $html_found = strpos($value, "text/html;");
             $contenttype_found = strpos($value, "Content-Type");
-            if ($html_found === false){
-                // do nothing
-            }else {
-                break;
-            }
+            if ($html_found)
+                break;            
         }
         if (($html_found === false)&&($contenttype_found === 0)) return false;
         $html = ob_get_contents();
+		
         $url = $this->url;
         $response = $this->send_to_bablic($url, $html);
         return $response;
