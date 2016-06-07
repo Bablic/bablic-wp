@@ -203,7 +203,6 @@ class BablicSDK {
     }
 
     public function get_snippet() {
-		//print_r($this->get_site());
         if($this->subdir)
             return '<script type="text/javascript">var bablic=bablic||{};bablic.localeURL="subdir"</script>'.$this->snippet;
         return $this->snippet;
@@ -466,8 +465,11 @@ class BablicSDK {
             $contenttype_found = 0;
             $html_found = strpos($value, "text/html;");
             $contenttype_found = strpos($value, "Content-Type");
-            if ($html_found)
-                break;            
+            if ($html_found === false){
+                // do nothing
+            }else {
+                break;
+            }
         }
         if (($html_found === false)&&($contenttype_found === 0)) return false;
         $html = ob_get_contents();
