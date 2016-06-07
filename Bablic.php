@@ -142,9 +142,9 @@ class bablic {
 			$bablic_locale = $header;
 		}
 		else {
-            $bablic_locale = $sdk->get_locale();
+            $bablic_locale = $this->sdk->get_locale();
 		}
-		if($bablic_locale == $sdk->get_original())
+		if($bablic_locale == $this->sdk->get_original())
 		    return $lang;
         return $bablic_locale;
 	}
@@ -270,7 +270,7 @@ class bablic {
             );
         wp_enqueue_script(
                 'bablic-admin',
-                plugins_url('/admin.js?r=7', __FILE__)
+                plugins_url('/admin.js?r=16', __FILE__)
             );
     }
 	
@@ -306,20 +306,20 @@ class bablic {
 			<form name="form1" id="form1" method="post" action="options.php">
 				<?php settings_fields( $this->options_group ); // nonce settings page ?>
 				<input type="hidden" id="bablic_item_site_id"  value="<?php echo $this->sdk->site_id; ?>" />
-				<div class="bablicFirstTime">
+				<div class="bablicFirstTime" style="display:none">
 				    <p style="font-size:0.95em">
 				        Bablic makes Wordpress translation easy. Just click "I'm new to Bablic" below in order to translate your website through our user-friendly editor. If you already have registered to Bablic, click "I'm already signed up with Bablic"
                     </p>
                     <table class="form-table">
                         <tr valign="top">
                             <td>
-                                <button id="bablicCreate">I'm new to Bablic</button>
-                                <button id="bablicSet">I'm already signed-up with Bablic</button>
+                                <button type="button" class="button" id="bablicCreate">I'm new to Bablic</button>
+                                <button type="button" class="button" id="bablicSet">I'm already signed-up with Bablic</button>
                             </td>
                         </tr>
                     </table>
 				</div>
-				<div class="bablicSecondTime">
+				<div class="bablicSecondTime" style="display:none">
 				    <p style="font-size:0.95em">
                         Have any questions or concerns? Need help? Email <a href="mailto:support@bablic.com">support@bablic.com</a> for free support.
                     </p>
@@ -327,7 +327,7 @@ class bablic {
                         <tr valign="top">
                             <td>
                                 To make translation changes, visit Bablic's editor by clicking the button below: <br><br>
-                                <button id="bablicEditor" data-url="<?php echo $this->sdk->editor_url() ?>">Open Editor</button>
+                                <button id="bablicEditor" type="button" class="button" data-url="<?php echo $this->sdk->editor_url() ?>">Open Editor</button>
                             </td>
                         </tr>
                         <tr>
@@ -360,13 +360,15 @@ class bablic {
 	
 	// 	the Bablic snippet to be inserted
 	function getBablicCode() { 
-		global $wp_rewrite;
 		if(is_admin())
 		    return;
-        echo '<!-- start Bablic -->';
-        echo $this->sdk->get_snippet();
-        echo '<script>bablic.exclude("#wpadminbar,#wp-admin-bar-my-account");</script>';
-        echo '<!-- end Bablic -->';
+        echo '<!-- start Bablic2 -->';
+		$snippet = $this->sdk->get_snippet();
+        if($snippet != ''){
+			echo $snippet;
+			echo '<script>bablic.exclude("#wpadminbar,#wp-admin-bar-my-account");</script>';
+		}
+        echo '<!-- end Bablic2 -->';
     }
 
 	function bablic_admin_messages() {
@@ -411,6 +413,7 @@ class bablic {
     }
 
     function bablic_hide_rating(){
+		header('Content-type: application/json');
         $options = $this->optionsGetOptions();
         $options['rated'] = 'yes';
         $this->updateOptions($options);
@@ -418,24 +421,30 @@ class bablic {
     }
 
     function bablic_clear_cache(){
+		header('Content-type: application/json');
 		$this->sdk->clear_cache();
         echo json_encode(array("success")); exit;
     }
 
     function bablic_settings_save(){
         $data = $_POST['data'];
+		header('Content-type: application/json');
         switch($data['action']){
             case 'create':
                 $this->site_create();
+                if(!$this->sdk->site_id){
+                    echo json_encode(array('error' => 'no site')); exit;
+                    return;
+                }
                 break;
             case 'set':
-                $site_id = $data['site'];
+                $site = $data['site'];
                 $url = get_site_url();
-                $this->sdk->set_site($site_id,"$url/wp-json/bablic/callback");
+                $this->sdk->set_site($site,"$url/wp-json/bablic/callback");
                 break;
             case 'subdir':
                 $options = $this->optionsGetOptions();
-                $options['dont_permalink'] = $data['on'] ? 'no' : 'yes';
+                $options['dont_permalink'] = $data['on'] == 'true' ? 'no' : 'yes';
                 $this->updateOptions($options);
                 global $wp_rewrite;
                 $wp_rewrite->flush_rules();
@@ -444,6 +453,7 @@ class bablic {
                 $this->sdk->remove_site();
                 break;
         }
+		$this->sdk->clear_cache();
         echo json_encode(array(
             'editor' => $this->sdk->editor_url()
         )); exit;

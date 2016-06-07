@@ -10,6 +10,7 @@ jQuery(function($){
         return;
 
     var existingSite = $siteId.val();
+    bablic.channel('wp');
 
     $('#bablic_clear_cache').click(function(){
         var $button = $(this).attr('disabled','disabled');
@@ -35,7 +36,7 @@ jQuery(function($){
                 action:'bablicSettings',
                 data:{
                     action:'subdir',
-                    on:$dontPermalink.is(':checked')
+                    on:$button.is(':checked')
                 }
             },
             dataType: "json",
@@ -66,29 +67,41 @@ jQuery(function($){
     });
 
     $('#bablicSet').click(function(){
-        var $button = $(this).attr('disabled','disabled');
         bablic.chooseSite(function(err,site){
             if(err){
-                $button.removeAttr('disabled');
                 console.error(err);
                 return alert('Error');
             }
-            jQuery.ajax({
-                url: ajaxurl,
-                type: "post",
-                data: {
-                    action:'bablicSettings',
-                    data:{
-                        action:'set',
-                        site:site
-                    }
-                },
-                dataType: "json",
-                async: !0
-            }).always(function(data){
-                $button.removeAttr('disabled');
-                $('#bablicEditor').data('url',data.editor);
-                existingSiteMode();
+            if(!site)
+                return $('#bablicCreate').click();
+            bablic.getSite({id:site.id},function(err,site){
+                if(err || !site){
+                    console.error(err);
+                    return alert('Error creating site. Site is already registered in Bablic');
+                }
+                jQuery.ajax({
+                    url: ajaxurl,
+                    type: "post",
+                    data: {
+                        action:'bablicSettings',
+                        data:{
+                            action:'set',
+                            site:site
+                        }
+                    },
+                    dataType: "json",
+                    async: !0
+                })
+                    .fail(function(error){
+                        console.error(error);
+                        alert('Error creating site. Site is already registered in Bablic');
+                    })
+                    .done(function(data){
+                        if(data.error)
+                            return alert('Error creating site. Site is already registered in Bablic');
+                        $('#bablicEditor').data('url',data.editor);
+                        existingSiteMode();
+                    });
             });
         })
     });
@@ -119,13 +132,13 @@ jQuery(function($){
     });
 
     function existingSiteMode(){
-        $('#bablicFirstTime').hide();
-        $('#bablicSecondTime').show();
+        $('.bablicFirstTime').hide();
+        $('.bablicSecondTime').show();
     }
 
     function newSiteMode(){
-        $('#bablicFirstTime').show();
-        $('#bablicSecondTime').hide();
+        $('.bablicFirstTime').show();
+        $('.bablicSecondTime').hide();
     }
 
     if(existingSite)
