@@ -495,7 +495,7 @@ class BablicSDK {
         return "$folder/$filename";
     }
 
-	public function write_buffer($ch,$fp,$len){
+	public function write_buffer($ch,$fp,$len){		
 		$data = substr($this->_body, $this->pos, $len);
 		// increment $pos
 		$this->pos += strlen($data);
@@ -520,8 +520,7 @@ class BablicSDK {
         $response = curl_exec($curl);
         $status = curl_getinfo($curl, CURLINFO_HTTP_CODE);
         if (($status != 200 ) && ($status != 301)) {
-            return $html;
-            die("Error: curl_error " . curl_error($curl) . ", curl_errno " . curl_errno($curl));
+            return $html;            
         }
 
         curl_close($curl);

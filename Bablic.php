@@ -45,7 +45,7 @@ class bablic {
 
         add_action('login_head', array( &$this, 'writeBoth' ));
 		// before process buffer
-		add_action( 'parse_request', array( &$this, 'before_header' ),0);
+		add_action( 'plugins_loaded', array( &$this, 'before_header' ),0);
 
         //add_action('shutdown', array(&$this, 'after_header'),9999999999);
 
