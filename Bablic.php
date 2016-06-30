@@ -43,6 +43,7 @@ class bablic {
 		add_action( 'wp_head', array( &$this, 'writeHead' ));
 		add_action( 'wp_footer', array( &$this, 'writeFooter' ));
 
+        add_action('login_head', array( &$this, 'writeBoth' ));
 		// before process buffer
 		add_action( 'parse_request', array( &$this, 'before_header' ),0);
 
@@ -267,11 +268,7 @@ class bablic {
 
         wp_enqueue_script(
                 'bablic-admin-sdk',
-                '//cdn2.bablic.com/js/sdk.min.js'
-            );
-        wp_enqueue_script(
-                'bablic-admin',
-                plugins_url('/admin.js?r=16', __FILE__)
+                '//cdn2.bablic.com/addons/wp.js'
             );
     }
 	
@@ -389,6 +386,18 @@ class bablic {
 			}
 			echo '<!-- end Bablic Footer -->';
 		}
+	}
+
+	function writeBoth(){
+        echo '<!-- start Bablic Head -->';
+		$this->sdk->alt_tags();
+        $snippet = $this->sdk->get_snippet();
+        if($snippet != ''){
+            echo $snippet;
+            echo '<script>bablic.exclude("#wpadminbar,#wp-admin-bar-my-account");</script>';
+        }
+        echo '<!-- end Bablic Head -->';
+
 	}
 
 	function bablic_admin_messages() {

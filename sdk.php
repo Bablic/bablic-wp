@@ -65,6 +65,8 @@ class BablicSDK {
     private $channel_id = '';
     private $version = '';
     private $meta = '';
+	private $_body = '';
+	private $pos = 0;
 
     function __construct($options) {
         if (empty($options['channel_id'])){
@@ -488,17 +490,27 @@ class BablicSDK {
         return "$tmp_dir/$filename";
     }
 
+	public function write_buffer($ch,$fp,$len){		
+		$data = substr($this->_body, $this->pos, $len);
+		// increment $pos
+		$this->pos += strlen($data);
+		// return the data to send in the request
+		return $data;
+	}
+	
     private function send_to_bablic($url, $html) {
         $bablic_url = "http://seo.bablic.com/api/engine/seo?site=$this->site_id&url=".urlencode($url).($this->subdir ? "&ld=subdir" : "");
         $curl = curl_init($bablic_url);
-
+		$length = strlen($html);
         curl_setopt($curl, CURLOPT_SSL_VERIFYHOST, 0);
         curl_setopt($curl, CURLOPT_SSL_VERIFYPEER, 0);
         curl_setopt($curl, CURLOPT_HEADER, false);
         curl_setopt($curl, CURLOPT_RETURNTRANSFER, true);
-        curl_setopt($curl, CURLOPT_HTTPHEADER, array("Content-type: text/html","Expect:"));
+        curl_setopt($curl, CURLOPT_HTTPHEADER, array("Content-type: text/html", "Content-Length: $length","Expect:"));
         curl_setopt($curl, CURLOPT_POST, true);
-        curl_setopt($curl, CURLOPT_POSTFIELDS, $html);
+		$this->_body = $html;
+		$this->pos = 0;
+        curl_setopt($curl, CURLOPT_READFUNCTION, array(&$this,'write_buffer'));
         
         $response = curl_exec($curl);
         $status = curl_getinfo($curl, CURLINFO_HTTP_CODE);
