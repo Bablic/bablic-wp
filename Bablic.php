@@ -394,6 +394,7 @@ class bablic {
         $snippet = $this->sdk->get_snippet();
         if($snippet != ''){
             echo $snippet;
+            echo '<script>bablic.markup("url","form","ignore");</script>';
             echo '<script>bablic.exclude("#wpadminbar,#wp-admin-bar-my-account");</script>';
         }
         echo '<!-- end Bablic Head -->';
