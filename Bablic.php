@@ -363,29 +363,38 @@ class bablic {
 		if(is_admin())
 		    return;
         echo '<!-- start Bablic Head -->';
-		$this->sdk->alt_tags();
-		if($this->sdk->get_locale() != $this->sdk->get_original()){
-			$snippet = $this->sdk->get_snippet();
-			if($snippet != ''){
-				echo $snippet;
-				echo '<script>bablic.exclude("#wpadminbar,#wp-admin-bar-my-account");</script>';
-			}
+        try{
+		    $this->sdk->alt_tags();
 		}
+		catch (Exception $e) { echo '<!-- Bablic No Alt Tags -->'; }
+		try{
+            if($this->sdk->get_locale() != $this->sdk->get_original()){
+                $snippet = $this->sdk->get_snippet();
+                if($snippet != ''){
+                    echo $snippet;
+                    echo '<script>bablic.exclude("#wpadminbar,#wp-admin-bar-my-account");</script>';
+                }
+            }
+		}
+        catch (Exception $e) { echo '<!-- Bablic No Head -->'; }
         echo '<!-- end Bablic Head -->';
     }
 	
 	function writeFooter(){
 		if(is_admin())
 		    return;
-		if($this->sdk->get_locale() == $this->sdk->get_original()){
-			echo '<!-- start Bablic Footer -->';
-			$snippet = $this->sdk->get_snippet();
-			if($snippet != ''){
-				echo $snippet;
-				echo '<script>bablic.exclude("#wpadminbar,#wp-admin-bar-my-account");</script>';
-			}
-			echo '<!-- end Bablic Footer -->';
-		}
+            try{
+                if($this->sdk->get_locale() == $this->sdk->get_original()){
+                    echo '<!-- start Bablic Footer -->';
+                    $snippet = $this->sdk->get_snippet();
+                    if($snippet != ''){
+                        echo $snippet;
+                        echo '<script>bablic.exclude("#wpadminbar,#wp-admin-bar-my-account");</script>';
+                    }
+                    echo '<!-- end Bablic Footer -->';
+                }
+            }
+            catch (Exception $e) { echo '<!-- Bablic No Footer -->'; }
 	}
 
 	function writeBoth(){

@@ -79,6 +79,11 @@ class BablicSDK {
             $this->store = new file_store();
         if ($this->store->get('site_id') != '') 
             $this->get_data_from_store();
+		if(!empty($options['site_id'])){
+			$this->site_id = $options['site_id'];
+			if($this->store->get('site_id') != $this->site_id)
+				$this->get_site_from_bablic();
+		}
         if(!empty($options['subdir']))
             $this->subdir = $options['subdir'];
     }
@@ -114,7 +119,7 @@ class BablicSDK {
         $this->site_id = $site['id'];
         $this->access_token = isset($site['access_token']) ? $site['access_token'] : '';
         $this->get_site_from_bablic();
-        $url = "https://www.bablic.com/api/v1/site/$site_id?access_token=$this->access_token&channel_id=$this->channel_id";
+        $url = "https://www.bablic.com/api/v1/site/".$site['id']."?access_token=$this->access_token&channel_id=$this->channel_id";
         $payload = array(
             'callback' => $callback,
         );
@@ -210,17 +215,36 @@ class BablicSDK {
         return $this->snippet;
     }
 
+    public function bablic_top(){
+        echo '<!-- start Bablic Head -->';
+        $this->alt_tags();
+        if($this->get_locale() != $this->get_original()){
+            echo $this->get_snippet();
+        }
+        echo '<!-- end Bablic Head -->';
+    }
+
+    public function bablic_bottom(){
+        if($this->get_locale() == $this->get_original()){
+			echo '<!-- start Bablic Footer -->';
+			echo $this->get_snippet();
+			echo '<!-- end Bablic Footer -->';
+		}
+    }
+
     public function alt_tags(){
         $meta = json_decode($this->meta, true);
         $locale_keys = $meta['localeKeys'];
         $locale = $this->get_locale();
         $url = $_SERVER['REQUEST_URI'];
-        foreach( $locale_keys as $alt){
-            if($alt != $locale)
-                echo '<link rel="alternate" href="' . $this->get_link($alt,$url) . '" hreflang="'.$alt.'">';
+        if(is_array($locale_keys)){
+            foreach( $locale_keys as $alt){
+                if($alt != $locale)
+                    echo '<link rel="alternate" href="' . $this->get_link($alt,$url) . '" hreflang="'.$alt.'">';
+            }
+            if($locale != $meta['original'])
+                echo '<link rel="alternate" href="' . $this->get_link($locale,$url) . '" hreflang="'.$locale.'">';
         }
-        if($locale != $meta['original'])
-            echo '<link rel="alternate" href="' . $this->get_link($locale,$url) . '" hreflang="'.$locale.'">';
     }
 
     private function get_all_headers() {
@@ -330,6 +354,8 @@ class BablicSDK {
     }
 
     public function get_locale() {
+        if(!empty($_SERVER['HTTP_BABLIC_LOCALE']))
+            return $_SERVER['HTTP_BABLIC_LOCALE'];
 		if($this->meta == '')
 			return '';
         $meta = json_decode($this->meta, true);
