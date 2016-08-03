@@ -356,6 +356,8 @@ class bablic {
 		<?php
 		
 		$this->sdk->refresh_site();
+		global $wp_rewrite;
+		$wp_rewrite->flush_rules();
 	} 
 	
 	// 	the Bablic snippet to be inserted

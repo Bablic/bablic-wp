@@ -67,6 +67,7 @@ class BablicSDK {
     private $meta = '';
 	private $_body = '';
 	private $pos = 0;
+	private $timestamp = 0;
 
     function __construct($options) {
         if (empty($options['channel_id'])){
@@ -84,6 +85,11 @@ class BablicSDK {
 			if($this->store->get('site_id') != $this->site_id)
 				$this->get_site_from_bablic();
 		}
+		if($this->site_id && (empty($this->timestamp) || ((time() - $this->timestamp) > 12000))){
+			$this->timestamp = time();
+			$this->get_site_from_bablic();
+		}
+
         if(!empty($options['subdir']))
             $this->subdir = $options['subdir'];
     }
@@ -94,6 +100,7 @@ class BablicSDK {
         $this->store->set('version', $this->version);
         $this->store->set('snippet', $this->snippet);
         $this->store->set('site_id', $this->site_id);
+        $this->store->set('time',$this->timestamp);
     }
 	
 	private function clear_data(){
@@ -111,6 +118,7 @@ class BablicSDK {
        $this->meta = $this->store->get('meta');
        $this->snippet = $this->store->get('snippet');
        $this->access_token = $this->store->get('access_token');
+       $this->timestamp = $this->store->get('time');
     }
 
     public function set_site($site,$callback=''){
@@ -183,6 +191,7 @@ class BablicSDK {
         $this->snippet = $result['snippet'];
         $this->version = $result['version'];
         $this->meta = json_encode($result['meta']);
+        $this->timestamp = time();
         $this->save_data_to_store();
     }
 	
