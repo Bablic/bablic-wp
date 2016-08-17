@@ -381,14 +381,15 @@ class BablicSDK {
             $normalized_lang = strtolower(str_replace('-','_',$detected_lang));
             $match = false;
             foreach ($locale_keys as &$value) {
-                if ($value === $normalized_lang)
-                    $match = true;
-                if (!$match)
-                    if (substr($value,0,2) === substr($normalized_lang,0,2))
-                        $match = true;
+                if ($value === $normalized_lang){
+                    $detected = $value;
+                    break;
+                }
+                if (!$match && substr($value,0,2) === substr($normalized_lang,0,2)){
+                    $detected = $value;
+                    break;
+                }
             }
-            if ($match)
-                $detected = $normalized_lang;
         }
         $from_cookie = $this->detect_locale_from_cookie($locale_keys);
         $parsed_url = parse_url($this->get_current_url());
