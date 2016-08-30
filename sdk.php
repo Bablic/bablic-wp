@@ -219,8 +219,10 @@ class BablicSDK {
     }
 
     public function get_snippet() {
-        if($this->subdir)
-            return '<script type="text/javascript">var bablic=bablic||{};bablic.localeURL="subdir"</script>'.$this->snippet;
+        if($this->subdir){
+            $locale = $this->get_locale();
+            return '<script type="text/javascript">var bablic=bablic||{};bablic.localeURL="subdir";bablic.locale="'.$locale.'"</script>'.$this->snippet;
+        }
         return $this->snippet;
     }
 
@@ -379,13 +381,12 @@ class BablicSDK {
         if($auto && !empty($locale_keys)){
             $detected_lang = $this->detect_locale_from_header();
             $normalized_lang = strtolower(str_replace('-','_',$detected_lang));
-            $match = false;
             foreach ($locale_keys as &$value) {
                 if ($value === $normalized_lang){
                     $detected = $value;
                     break;
                 }
-                if (!$match && substr($value,0,2) === substr($normalized_lang,0,2)){
+                if (substr($value,0,2) === substr($normalized_lang,0,2)){
                     $detected = $value;
                     break;
                 }
@@ -406,9 +407,11 @@ class BablicSDK {
                 $path = $parsed_url['path'];
                 preg_match("/^(\/(\w\w(_\w\w)?))(?:\/|$)/", $path, $matches);
                 if ($matches) return $matches[2];
-                if ($detected) return $detected;
+                if ($from_cookie)
+                    return $default;
+                if ($detected)
+                    return $detected;
                 return $default;
-                break;
             case 'custom':
                 function create_domain_regex($str) {
                     $new_str = preg_replace("/([.?+^$[\]\\(){}|-])/g", "\\$1", $str);
@@ -420,7 +423,6 @@ class BablicSDK {
                         return $value;
                 }
                 return $default;
-                break;
             default:
                 return $from_cookie;
         }
