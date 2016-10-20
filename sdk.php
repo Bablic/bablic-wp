@@ -61,10 +61,11 @@ class BablicSDK {
     private $subdir = false;
     private $url = '';
     private $nocache = false;
-    private $access_token = '';
+    public $access_token = '';
     private $channel_id = '';
     private $version = '';
     private $meta = '';
+    private $trial_started = false;
 	private $_body = '';
 	private $pos = 0;
 	private $timestamp = 0;
@@ -74,7 +75,9 @@ class BablicSDK {
             $options['channel_id'] = 'php';
         }       
         $this->channel_id = $options['channel_id'];
-        if ($this->channel_id === 'wp')
+        if(!empty($options['store']))
+            $this->store = $options['store'];
+        else if ($this->channel_id === 'wp')
             $this->store = new wp_store();
         else
             $this->store = new file_store();
@@ -90,22 +93,28 @@ class BablicSDK {
 			$this->get_site_from_bablic();
 		}
 
-        if(!empty($options['subdir']))
-            $this->subdir = $options['subdir'];
+        if(!empty($options['subdir']) && $this->meta){
+            $meta = json_decode($this->meta, true);
+            $locale_keys = $meta['localeKeys'];
+            if(count($locale_keys) > 0)
+                $this->subdir = $options['subdir'];
+        }
     }
 
     private function save_data_to_store(){
         $this->store->set('meta', $this->meta);
         $this->store->set('access_token', $this->access_token);
         $this->store->set('version', $this->version);
+        $this->store->set('trial_started', $this->trial_started?'1':'');
         $this->store->set('snippet', $this->snippet);
         $this->store->set('site_id', $this->site_id);
         $this->store->set('time',$this->timestamp);
     }
 	
-	private function clear_data(){
+	public function clear_data(){
 		$this->site_id = '';
 		$this->version = '';
+		$this->trial_started = false;
 		$this->snippet = '';
 		$this->meta = '';
 		$this->access_token = '';
@@ -115,6 +124,7 @@ class BablicSDK {
     private function get_data_from_store() {
        $this->site_id = $this->store->get('site_id');
        $this->version = $this->store->get('version');
+       $this->trial_started = $this->store->get('trial_started') == '1';
        $this->meta = $this->store->get('meta');
        $this->snippet = $this->store->get('snippet');
        $this->access_token = $this->store->get('access_token');
@@ -125,8 +135,11 @@ class BablicSDK {
         if(empty($site['id']))
             die('No site id');
         $this->site_id = $site['id'];
-        $this->access_token = isset($site['access_token']) ? $site['access_token'] : '';
+		if($this->access_token == '')
+			$this->access_token = isset($site['access_token']) ? $site['access_token'] : '';
         $this->get_site_from_bablic();
+        if($callback == '')
+            return;
         $url = "https://www.bablic.com/api/v1/site/".$site['id']."?access_token=$this->access_token&channel_id=$this->channel_id";
         $payload = array(
             'callback' => $callback,
@@ -171,6 +184,7 @@ class BablicSDK {
         $this->site_id = $result['id'];
         $this->snippet = $result['snippet'];
         $this->version = $result['version'];
+        $this->trial_started = false;
         $this->meta = json_encode($result['meta']);
         $this->save_data_to_store();
     }
@@ -183,6 +197,12 @@ class BablicSDK {
         $result = curl_exec($ch);
         $result = json_decode($result, true);
         if (!empty($result['error'])) {
+			if(!empty($result['error']['code']) && $result['error']['code'] == 410){
+				$this->clear_data();
+				$this->save_data_to_store();
+				return array("error" => "Site removed");
+			}
+				
             return array("error" => "Bablic returned error");
         }
 		if(!empty($result['access_token']))
@@ -190,6 +210,7 @@ class BablicSDK {
         $this->site_id = $result['id'];
         $this->snippet = $result['snippet'];
         $this->version = $result['version'];
+        $this->trial_started = $result['trialStarted'];
         $this->meta = json_encode($result['meta']);
         $this->timestamp = time();
         $this->save_data_to_store();
@@ -203,7 +224,6 @@ class BablicSDK {
         $tmp_dir = sys_get_temp_dir();
 		$folder = "$tmp_dir/bablic_cache";
 		if (!file_exists($folder)){
-			echo "not exists";
 			return;
 		} 
         array_map('unlink', glob("$folder/*"));
@@ -212,8 +232,10 @@ class BablicSDK {
     public function get_site(){
         return array (
             "meta" => $this->meta,
+			"access_token" => $this->access_token,
             "site_id" => $this->site_id,
             "version" => $this->version,
+            "trial_started" => $this->trial_started,
             "snippet" => $this->snippet
         );
     }
@@ -254,7 +276,7 @@ class BablicSDK {
                     echo '<link rel="alternate" href="' . $this->get_link($alt,$url) . '" hreflang="'.$alt.'">';
             }
             if($locale != $meta['original'])
-                echo '<link rel="alternate" href="' . $this->get_link($locale,$url) . '" hreflang="'.$locale.'">';
+                echo '<link rel="alternate" href="' . $this->get_link($meta['original'],$url) . '" hreflang="'.$meta['original'].'">';
         }
     }
 

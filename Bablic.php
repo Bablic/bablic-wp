@@ -22,6 +22,7 @@ class bablic {
 	var $plugin_textdomain = 'Bablic';
 	var $bablic_version = '3.3';
     var $query_var = 'bablic_locale';
+    var $bablic_plugin_version = '2.2.1';
 	
 	
 
@@ -82,7 +83,6 @@ class bablic {
 
         // register ajax hook
         add_action('wp_ajax_bablicHideRating',array(&$this, 'bablic_hide_rating'));
-        add_action('wp_ajax_bablicClearCache',array(&$this, 'bablic_clear_cache'));
 
         add_action('wp_ajax_bablicSettings',array(&$this, 'bablic_settings_save'));
 
@@ -93,6 +93,10 @@ class bablic {
                 'subdir' => $options['dont_permalink'] == 'no'
             )
         );
+
+        if($options['dont_permalink'] == 'no')
+            remove_filter('template_redirect','redirect_canonical');
+
 	}
 	
 	function register_routes(){
@@ -121,7 +125,7 @@ class bablic {
     }
 
     function create_site_error() {
-        echo '<div class="bablic_fivestar" style="box-shadow: 0 1px 1px 0 rgba(0,0,0,.1);">Error in site creation, please contact Bablic</div>';
+        echo '<div class="bablic_fivestar" style="box-shadow: 0 1px 1px 0 rgba(0,0,0,.1);">Error in site creation, make sure Bablic snippet was added manually to your php files. Please contact support@bablic.com for further support</div>';
     }
 
     function before_header(){
@@ -263,14 +267,10 @@ class bablic {
 		register_setting( $this->options_group, $this->options_name, array( &$this, 'optionsValidate' ) );
 	}
 
-    function addAdminScripts($hook_suffix){
-        global $my_settings_page;
-
-        wp_enqueue_script(
-                'bablic-admin-sdk',
-                '//cdn2.bablic.com/addons/wp.js'
-            );
-    }
+	function addAdminScripts($hook_suffix){
+		wp_enqueue_style('bablic-admin-css','//cdn2.bablic.com/addons/wp2.css');
+		wp_enqueue_script('bablic-admin-sdk','//cdn2.bablic.com/addons/wp2.js');
+    }  
 	
 	// create and link options page
 	function optionsAddPage() {
@@ -296,61 +296,21 @@ class bablic {
 	// draw the options page
 	function optionsDrawPage() { 
 		$options = $this->optionsGetOptions();
-		$isFirstTime = $this->sdk->site_id == '';;
+		$isFirstTime = $this->sdk->site_id == '';
+		$site = $this->sdk->get_site();
 	?>
-		<div class="wrap" style="background: #fff; padding: 5px;">
-		<div class="icon32" id="icon-options-general"><br /></div>
-			<h2><?php echo $this->plugin_name; ?></h2>
-			<form name="form1" id="form1" method="post" action="options.php">
-				<?php settings_fields( $this->options_group ); // nonce settings page ?>
-				<input type="hidden" id="bablic_item_site_id"  value="<?php echo $this->sdk->site_id; ?>" />
-				<div class="bablicFirstTime" style="display:none">
-				    <p style="font-size:0.95em">
-				        Bablic makes Wordpress translation easy. Just click "I'm new to Bablic" below in order to translate your website through our user-friendly editor. If you already have registered to Bablic, click "I'm already signed up with Bablic"
-                    </p>
-                    <table class="form-table">
-                        <tr valign="top">
-                            <td>
-                                <button type="button" class="button" id="bablicCreate">I'm new to Bablic</button>
-                                <button type="button" class="button" id="bablicSet">I'm already signed-up with Bablic</button>
-                            </td>
-                        </tr>
-                    </table>
-				</div>
-				<div class="bablicSecondTime" style="display:none">
-				    <p style="font-size:0.95em">
-                        Have any questions or concerns? Need help? Email <a href="mailto:support@bablic.com">support@bablic.com</a> for free support.
-                    </p>
-                    <table class="form-table">
-                        <tr valign="top">
-                            <td>
-                                To make translation changes, visit Bablic's editor by clicking the button below: <br><br>
-                                <button id="bablicEditor" type="button" class="button" data-url="<?php echo $this->sdk->editor_url() ?>">Open Editor</button>
-                            </td>
-                        </tr>
-                        <tr>
-                            <td>
-                                <h3>Settings</h3>
-                            </td>
-                        </tr>
-                        <tr>
-                            <td>
-                                <label><input type="checkbox" id="bablic_dont_permalink" <?php checked( 'no', $options['dont_permalink'], true ) ?>  > Generate SEO-friendly localization urls (for example: /es/, /fr/about, ...)</label>
-                            </td>
-                        </tr>
-                        <tr>
-                            <td>
-                                <button id="bablic_clear_cache" type="button" class="button">Clear SEO Cache</button>
-                            </td>
-                        </tr>
-                        <tr>
-                            <td>
-                                <button id="bablic_delete_account" type="button" class="button">Delete Bablic Account</button>
-                            </td>
-                        </tr>
-                    </table>
-				</div>
-            </form>
+		<div class="bablic-wp">	
+			<h2>Bablic</h2>
+			<label>
+				<input type="checkbox" id="bablic_dont_permalink" <?php checked( 'no', $options['dont_permalink'], true ) ?>  > Generate sub-directory urls (for example: /es/, /fr/about, ...)
+			</label>
+			<div style="display:none;">
+				<input type="hidden" value="<?php echo $site['site_id'] ?>" id="bablic_site_id" />
+				<input type="hidden" value="<?php echo $site['access_token'] ?>" id="bablic_access_token" />				
+				<textarea  id="bablic_item_meta"><?php echo $site['meta'] ?></textarea>
+				<input type="hidden" value="<?php echo ($site['trial_started'] ? '1' : '') ?>" id="bablic_trial" />
+			</div>
+			<div id="bablic_form"></div>
         </div>
 
 		<?php
@@ -364,7 +324,7 @@ class bablic {
 	function writeHead() { 
 		if(is_admin())
 		    return;
-        echo '<!-- start Bablic Head -->';
+        echo '<!-- start Bablic Head ' . $this->bablic_plugin_version . ' -->';
         try{
 		    $this->sdk->alt_tags();
 		}
@@ -400,7 +360,7 @@ class bablic {
 	}
 
 	function writeBoth(){
-        echo '<!-- start Bablic Head -->';
+        echo '<!-- start Bablic Head '. $this->bablic_plugin_version .' -->';
 		$this->sdk->alt_tags();
         $snippet = $this->sdk->get_snippet();
         if($snippet != ''){
@@ -461,21 +421,15 @@ class bablic {
         echo json_encode(array("success")); exit;
     }
 
-    function bablic_clear_cache(){
-		header('Content-type: application/json');
-		$this->sdk->clear_cache();
-		$this->sdk->refresh_site();
-        echo json_encode(array("success")); exit;
-    }
-
     function bablic_settings_save(){
+        global $wp_rewrite;
         $data = $_POST['data'];
 		header('Content-type: application/json');
         switch($data['action']){
             case 'create':
                 $this->site_create();
                 if(!$this->sdk->site_id){
-                    echo json_encode(array('error' => 'no site')); exit;
+                    echo json_encode(array('error' => 'Failed registering this website. Make sure this Bablic code snippet was not added manually into the website code')); exit;
                     return;
                 }
                 break;
@@ -488,16 +442,19 @@ class bablic {
                 $options = $this->optionsGetOptions();
                 $options['dont_permalink'] = $data['on'] == 'true' ? 'no' : 'yes';
                 $this->updateOptions($options);
-                global $wp_rewrite;
+                $wp_rewrite->flush_rules();
+                break;
+            case 'refresh':
+                $this->sdk->refresh_site();
                 $wp_rewrite->flush_rules();
                 break;
             case 'delete':
-                $this->sdk->remove_site();
+                $this->sdk->clear_data();
                 break;
         }
 		$this->sdk->clear_cache();
         echo json_encode(array(
-            'editor' => $this->sdk->editor_url()
+            'site' => $this->sdk->get_site()
         )); exit;
         return;
     }
