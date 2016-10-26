@@ -363,7 +363,7 @@ class BablicSDK {
                 $locale_keys = $meta['localeKeys'];
                 $locale_regex = "(" . implode("|",$locale_keys) . ")";
                 $path = preg_replace('/^\/'.$locale_regex.'\//','/',$path);
-                $prefix = $locale == $original ? '' : '/' . $locale;
+                $prefix = $locale == $meta['original'] ? '' : '/' . $locale;
                 return $scheme.$host.$port.$prefix.$path.$query.$fragment;
             case 'hash':
                 $fragment = '#locale_'.$locale;
