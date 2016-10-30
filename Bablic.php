@@ -1,11 +1,21 @@
 <?php
 require_once("sdk.php");
 
+class wp_store {
+    public function get($key){
+		return get_option($key);
+    }
+    public function set($key, $value){
+        update_option($key, $value);
+    }
+}
+
+
 /*
 Plugin Name: Bablic
 Plugin URI: https://www.bablic.com/docs#wordpress'
 Description: Integrates your site with Bablic localization cloud service.
-Version: 2.1
+Version: 2.3
 Author: Ishai Jaffe
 Author URI: https://www.bablic.com
 License: GPLv3
@@ -90,7 +100,8 @@ class bablic {
 		$this->sdk = new BablicSDK(
             array(
                 'channel_id' => 'wp',
-                'subdir' => $options['dont_permalink'] == 'no'
+                'subdir' => $options['dont_permalink'] == 'no',
+                'store' => new wp_store()
             )
         );
 
