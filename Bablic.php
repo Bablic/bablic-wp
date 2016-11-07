@@ -32,7 +32,7 @@ class bablic {
 	var $plugin_textdomain = 'Bablic';
 	var $bablic_version = '3.3';
     var $query_var = 'bablic_locale';
-    var $bablic_plugin_version = '2.2.1';
+    var $bablic_plugin_version = '2.2.3';
 	
 	
 
@@ -67,7 +67,7 @@ class bablic {
         // on plugin activate/de-activate
 		register_activation_hook( __FILE__, array( &$this, 'optionsCompat' ) );
         register_activation_hook(__FILE__, array(&$this, 'flush_rules'));
-        register_deactivation_hook(__FILE__, array(&$this, 'flush_rules'));
+        register_deactivation_hook(__FILE__, array(&$this, 'onDeactivate'));
 		
 		// replace all links
 		add_filter( 'post_link', array(&$this, 'append_prefix'), 10, 3 );
@@ -182,6 +182,15 @@ class bablic {
 	function flush_rules(){
 		global $wp_rewrite;
     	$wp_rewrite->flush_rules();
+	}
+
+	function onDeactivate(){
+	    global $wp_rewrite;
+        $options = $this->optionsGetOptions();
+        $options['dont_permalink'] = 'yes';
+        $options['uninstalled'] = '1';
+        $this->updateOptions($options);
+        $wp_rewrite->flush_rules();
 	}
 	
 	function bablic_insert_rewrite_rules($old_rules) {
@@ -316,8 +325,9 @@ class bablic {
 				<input type="checkbox" id="bablic_dont_permalink" <?php checked( 'no', $options['dont_permalink'], true ) ?>  > Generate sub-directory urls (for example: /es/, /fr/about, ...)
 			</label>
 			<div style="display:none;">
+				<?php if(isset($options['uninstalled']) && $options['uninstalled'] == '1') echo '<input type="hidden" id="bablic_was_uninstalled" />'  ?>
 				<input type="hidden" value="<?php echo $site['site_id'] ?>" id="bablic_site_id" />
-				<input type="hidden" value="<?php echo $site['access_token'] ?>" id="bablic_access_token" />				
+				<input type="hidden" value="<?php echo $site['access_token'] ?>" id="bablic_access_token" />
 				<textarea  id="bablic_item_meta"><?php echo $site['meta'] ?></textarea>
 				<input type="hidden" value="<?php echo ($site['trial_started'] ? '1' : '') ?>" id="bablic_trial" />
 			</div>
@@ -461,6 +471,17 @@ class bablic {
                 break;
             case 'delete':
                 $this->sdk->clear_data();
+                break;
+            case 'keep':
+                $options = $this->optionsGetOptions();
+                $options['uninstalled'] = '';
+                $this->updateOptions($options);
+                break;
+            case 'clear':
+                $options = $this->optionsGetOptions();
+                $options['uninstalled'] = '';
+                $this->updateOptions($options);
+                $this->sdk->remove_site();
                 break;
         }
 		$this->sdk->clear_cache();
