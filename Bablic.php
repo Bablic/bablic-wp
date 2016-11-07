@@ -32,7 +32,7 @@ class bablic {
 	var $plugin_textdomain = 'Bablic';
 	var $bablic_version = '3.3';
     var $query_var = 'bablic_locale';
-    var $bablic_plugin_version = '2.2.3';
+    var $bablic_plugin_version = '2.2.4';
 	
 	
 
@@ -350,8 +350,9 @@ class bablic {
 		    $this->sdk->alt_tags();
 		}
 		catch (Exception $e) { echo '<!-- Bablic No Alt Tags -->'; }
+		$locale = $this->sdk->get_locale();
 		try{
-            if($this->sdk->get_locale() != $this->sdk->get_original()){
+            if($locale != $this->sdk->get_original()){
                 $snippet = $this->sdk->get_snippet();
                 if($snippet != ''){
                     echo $snippet;
@@ -361,6 +362,18 @@ class bablic {
 		}
         catch (Exception $e) { echo '<!-- Bablic No Head -->'; }
         echo '<!-- end Bablic Head -->';
+
+        try{
+            $user_id = get_current_user_id();
+            if($user_id){
+                $metaLocale = get_user_meta($user_id,'bablic_locale',true);
+                if($metaLocale != $locale){
+                    update_user_meta($user_id,'bablic_locale',$locale);
+                    echo '<!-- Set User Language '.$user_id . ' '.$locale.' -->';
+                }
+            }
+        }
+        catch (Exception $e) { echo '<!-- No user meta -->'; }
     }
 	
 	function writeFooter(){
