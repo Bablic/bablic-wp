@@ -32,7 +32,7 @@ class bablic {
 	var $plugin_textdomain = 'Bablic';
 	var $bablic_version = '3.3';
     var $query_var = 'bablic_locale';
-    var $bablic_plugin_version = '2.2.4';
+    var $bablic_plugin_version = '2.2.5';
 	
 	
 
@@ -95,12 +95,12 @@ class bablic {
         add_action('wp_ajax_bablicHideRating',array(&$this, 'bablic_hide_rating'));
 
         add_action('wp_ajax_bablicSettings',array(&$this, 'bablic_settings_save'));
-
 		add_action( 'rest_api_init', array( $this, 'register_routes' ) );
 		$this->sdk = new BablicSDK(
             array(
                 'channel_id' => 'wp',
                 'subdir' => $options['dont_permalink'] == 'no',
+                'subdir_base' => $this->getDirBase(),
                 'store' => new wp_store()
             )
         );
@@ -133,6 +133,12 @@ class bablic {
         if (!empty($rslt['error']))
             add_action( 'admin_notices', array(&$this, 'create_site_error') );
 
+    }
+
+    function getDirBase(){
+        $url = get_site_url();
+        $path = parse_url($url, PHP_URL_PATH);
+        return preg_replace("/\/$/", "", $path);
     }
 
     function create_site_error() {
