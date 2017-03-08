@@ -40,7 +40,7 @@ class bablic {
 	var $plugin_textdomain = 'Bablic';
 	var $bablic_version = '3.3';
     var $query_var = 'bablic_locale';
-    var $bablic_plugin_version = '2.4.0';
+    var $bablic_plugin_version = '2.4.1';
 	
 	
 
@@ -302,8 +302,8 @@ class bablic {
 	}
 
 	function addAdminScripts($hook_suffix){
-		wp_enqueue_style('bablic-admin-css','//cdn2.bablic.com/addons/wp2.4.css');
-		wp_enqueue_script('bablic-admin-sdk','//cdn2.bablic.com/addons/wp2.4.js');
+		wp_enqueue_style('bablic-admin-css','//cdn2.bablic.com/addons/wp24.css');
+		wp_enqueue_script('bablic-admin-sdk','//cdn2.bablic.com/addons/wp24.js');
     }  
 	
 	// create and link options page
