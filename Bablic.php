@@ -357,7 +357,7 @@ class bablic {
         				<li> <span> Select a language & instantly preview your translated site using machine translation </span> </li>
         				<li> <span> Edit/improve the machine translation or order professional human translation with just a click </span> </li>
         				<li> <span> Easily replace images & fix style/CSS issues in a user-friendly, in-context, visual editor </span> </li>
-        				<li> <span> Customize the language selector color, position and style to match your Prestashop site's look and feel </span> </li>
+        				<li> <span> Customize the language selector color, position and style to match your WordPress site's look and feel </span> </li>
         				<li> <span> Click Publish when ready to go live </span>	</li>
         			</ol>
         		<div id='bablic_form'> </div>
@@ -365,7 +365,7 @@ class bablic {
         		<div class='right_side col-xs-12 col-md-6'>
         			<div><span></span> Reach new customers globally in a matter of minutes & increase sales</div>
         			<div><span></span> Start ranking on leading search engines for your new languages with Bablic's SEO-friendly solution</div>
-        			<div><span></span> Immediately compete with the big guys using your fully localized Prestashop store</div>
+        			<div><span></span> Immediately compete with the big guys using your fully localized WordPress site</div>
         			<div><span></span> Free dedicated support on all plans</div>
         		</div>
         	</div>
