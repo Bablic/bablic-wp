@@ -34,13 +34,15 @@ class bablic {
 	var $options_name = 'bablic_item';
 	var $options_group = 'bablic_option_option';
 	var $options_page = 'bablic';
-	var $plugin_homepage = 'https://www.bablic.com/integrations/wordpress';
-	var $bablic_docs = 'https://www.bablic.com/documentation';
+	var $plugin_homepage = 'http://help.bablic.com/integrations/translate-your-wordpress-site-with-bablic';
+	var $bablic_docs = 'http://help.bablic.com/';
 	var $plugin_name = 'Bablic';
 	var $plugin_textdomain = 'Bablic';
-	var $bablic_version = '3.3';
+	var $bablic_version = '3.9';
     var $query_var = 'bablic_locale';
-    var $bablic_plugin_version = '2.4.1';
+    var $bablic_plugin_version = '2.4.2';
+
+    var $debug = false;
 	
 	
 
@@ -109,7 +111,8 @@ class bablic {
                 'channel_id' => 'wp',
                 'subdir' => $options['dont_permalink'] == 'no',
                 'subdir_base' => $this->getDirBase(),
-                'store' => new wp_store()
+                'store' => new wp_store(),
+                'test' => $this->debug
             )
         );
 
@@ -303,7 +306,10 @@ class bablic {
 
 	function addAdminScripts($hook_suffix){
 		wp_enqueue_style('bablic-admin-css','//cdn2.bablic.com/addons/wp24.css');
-		wp_enqueue_script('bablic-admin-sdk','//cdn2.bablic.com/addons/wp24.js');
+		$test = '';
+		if($this->debug)
+		    $test = '?test=true';
+		wp_enqueue_script('bablic-admin-sdk','//cdn2.bablic.com/addons/wp24.js'. $test);
     }  
 	
 	// create and link options page
