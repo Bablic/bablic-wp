@@ -64,13 +64,17 @@ class BablicSDK {
 	private $timestamp = 0;
 	private $use_snippet_url = false;
 	private $bablic_base = 'https://www.bablic.com';
+	private $bablic_seo_base = 'http://seo.bablic.com';
+	private $_locale = '';
 
     function __construct($options) {
         if (empty($options['channel_id'])){
             $options['channel_id'] = 'php';
         }
-        if(!empty($options['test']) && $options['test'])
+        if(!empty($options['test']) && $options['test']){
             $this->bablic_base = 'http://staging.bablic.com';
+            $this->bablic_seo_base = 'http://staging.bablic.com';
+        }
 
         $this->channel_id = $options['channel_id'];
         if(!empty($options['store']))
@@ -83,6 +87,8 @@ class BablicSDK {
 			$this->site_id = $options['site_id'];
 			if($this->store->get('site_id') != $this->site_id)
 				$this->get_site_from_bablic();
+            else if(!empty($_SERVER['HTTP_X_BABLIC_REFRESH']))
+                $this->get_site_from_bablic();
 		}
         if($this->site_id){
             try{
@@ -432,7 +438,7 @@ class BablicSDK {
         return $meta['localeKeys'];
     }
 
-    public function get_locale() {
+    private function get_locale_inner(){
         if(!empty($_SERVER['HTTP_BABLIC_LOCALE']))
             return $_SERVER['HTTP_BABLIC_LOCALE'];
 		if($this->meta == '')
@@ -461,7 +467,8 @@ class BablicSDK {
             }
         }
         $from_cookie = $this->detect_locale_from_cookie($locale_keys);
-        $parsed_url = parse_url($this->get_current_url());
+        $url = $this->get_current_url();
+        $parsed_url = parse_url($url);
         switch ($locale_detection) {
             case 'querystring':
                 if ((!empty($_GET)) && (!empty($_GET['locale'])))
@@ -481,20 +488,30 @@ class BablicSDK {
                     return $detected;
                 return $default;
             case 'custom':
-                function create_domain_regex($str) {
-                    $new_str = preg_replace("/([.?+^$[\]\\(){}|-])/g", "\\$1", $str);
-                    return preg_replace("/\*/g",'.*', $new_str);
-                }
-                foreach ($custom_urls as &$value) {
-                    $pattern = create_domain_regex($value);
+                foreach ($custom_urls as $key => $value) {
+                    $pattern = $this->create_domain_regex($value);
                     if (preg_match($pattern, $url, $matches))
-                        return $value;
+                        return $key;
                 }
                 return $default;
             default:
                 return $from_cookie;
         }
         return;
+    }
+
+    public function get_locale() {
+        if($this->_locale != '')
+            return $this->_locale;
+        $locale = $this->get_locale_inner();
+        $this->_locale = $locale;
+        return $locale;
+    }
+
+
+    private function create_domain_regex($str){
+        $new_str = preg_replace("/([.?+^$[\]\\\/(){}|-])/", "\\\\$1", $str);
+        return '/'.preg_replace("/\*/",'.*', $new_str).'/';
     }
 
     public function editor_url() {
@@ -610,7 +627,7 @@ class BablicSDK {
 	}
 
     private function send_to_bablic($url, $html) {
-        $bablic_url = "http://seo.bablic.com/api/engine/seo?site=$this->site_id&url=".urlencode($url).($this->subdir ? "&ld=subdir" : "").($this->subdir_base ? "&sdb=" .urlencode($this->subdir_base) : "");
+        $bablic_url = $this->bablic_seo_base . "/api/engine/seo?site=$this->site_id&url=".urlencode($url).($this->subdir ? "&ld=subdir" : "").($this->subdir_base ? "&sdb=" .urlencode($this->subdir_base) : "");
         $curl = curl_init($bablic_url);
 		$length = strlen($html);
         curl_setopt($curl, CURLOPT_SSL_VERIFYHOST, 0);
