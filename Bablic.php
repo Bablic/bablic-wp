@@ -23,7 +23,7 @@ class wp_store {
 Plugin Name: Bablic
 Plugin URI: https://www.bablic.com/docs#wordpress'
 Description: Integrates your site with Bablic localization cloud service.
-Version: 2.4
+Version: 2.5
 Author: Ishai Jaffe
 Author URI: https://www.bablic.com
 License: GPLv3
@@ -40,7 +40,7 @@ class bablic {
 	var $plugin_textdomain = 'Bablic';
 	var $bablic_version = '3.9';
     var $query_var = 'bablic_locale';
-    var $bablic_plugin_version = '2.4.3';
+    var $bablic_plugin_version = '2.5.0';
 
     var $debug = false;
 	
