@@ -40,7 +40,7 @@ class bablic {
 	var $plugin_textdomain = 'Bablic';
 	var $bablic_version = '3.9';
     var $query_var = 'bablic_locale';
-    var $bablic_plugin_version = '2.4.2';
+    var $bablic_plugin_version = '2.4.3';
 
     var $debug = false;
 	
@@ -112,7 +112,8 @@ class bablic {
                 'subdir' => $options['dont_permalink'] == 'no',
                 'subdir_base' => $this->getDirBase(),
                 'store' => new wp_store(),
-                'test' => $this->debug
+                'test' => $this->debug,
+                'folders' => array()
             )
         );
 
