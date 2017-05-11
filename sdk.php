@@ -501,6 +501,7 @@ class BablicSDK {
         $default = $meta['default'];
         $custom_urls = $meta['customUrls'];
         $locale_keys = $meta['localeKeys'];
+        array_push($locale_keys, $meta['original']);
         $locale_detection = $meta['localeDetection'];
 		if($this->subdir)
 			$locale_detection = 'subdir';
