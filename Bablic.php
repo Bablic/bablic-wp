@@ -40,7 +40,7 @@ class bablic {
 	var $plugin_textdomain = 'Bablic';
 	var $bablic_version = '3.9';
     var $query_var = 'bablic_locale';
-    var $bablic_plugin_version = '2.5.0';
+    var $bablic_plugin_version = '2.5.2';
 
     var $debug = false;
 	
@@ -96,10 +96,13 @@ class bablic {
 		add_filter( 'term_link', array(&$this, 'append_prefix'), 10, 3 );
 
 		// get locale hook
-		add_filter('locale', array(&$this, 'get_locale'));
+		//add_filter('locale', array(&$this, 'get_locale'));
 
 
         add_action( 'admin_notices', array(&$this, 'bablic_admin_messages') );
+
+        add_action( 'pre_get_posts', array(&$this, 'filter_posts') ,9999999999999);
+        //add_action( 'add_meta_boxes', array(&$this, 'add_meta_fields'));
 
         // register ajax hook
         add_action('wp_ajax_bablicHideRating',array(&$this, 'bablic_hide_rating'));
@@ -120,6 +123,43 @@ class bablic {
         if($options['dont_permalink'] == 'no')
             remove_filter('template_redirect','redirect_canonical');
 
+	}
+
+/*    function add_meta_fields() {
+        $locales = $this->sdk->get_locales();
+        for($locales as $locale){
+            add_meta_box( 'hide-in-language-' . $locale, 'Hide in ' . strtoupper($locale), array(&$this, 'display_meta_box'), 'post' );
+        }
+    }
+
+    function display_meta_box(){
+
+    }*/
+
+	function filter_posts($query){
+        $locale = $this->get_locale();
+        if($locale == '')
+            return $query;
+        $meta_query = $query->get('meta_query');
+        if( empty($meta_query) )
+            $meta_query = array();
+
+        $meta_query[] = array(
+                'relation' => 'OR',
+                array(
+                    'key' => 'hide_' . $locale,
+                    'value' => true,
+                    'compare' => 'NOT EXISTS'
+                ),
+                array(
+                    'key' => 'hide_' . $locale,
+                    'value' => '0',
+                    'compare' => '='
+                ),
+            );
+
+        $query->set('meta_query',$meta_query);
+        return $query;
 	}
 	
 	function register_routes(){

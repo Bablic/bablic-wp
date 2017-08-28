@@ -297,7 +297,7 @@ class BablicSDK {
     public function get_snippet() {
         if($this->subdir){
             $locale = $this->get_locale();
-            return '<script type="text/javascript">var bablic=bablic||{};bablic.localeURL="subdir";bablic.subDirBase="'.$this->subdir_base.'";bablic.locale="'.$locale.'"</script>'.$this->snippet;
+            return '<script type="text/javascript">var bablic=bablic||{};bablic.localeURL="subdir";bablic.subDirBase="'.$this->subdir_base.'";</script>'.$this->snippet;
         }
         return $this->snippet;
     }
@@ -508,15 +508,21 @@ class BablicSDK {
         $detected = '';
         if($auto && !empty($locale_keys)){
             $detected_lang = $this->detect_locale_from_header();
-            $normalized_lang = strtolower(str_replace('-','_',$detected_lang));
-            foreach ($locale_keys as &$value) {
-                if ($value === $normalized_lang){
-                    $detected = $value;
-                    break;
+            if($detected_lang != false) {
+                $normalized_lang = strtolower(str_replace('-','_',$detected_lang));
+                foreach ($locale_keys as &$value) {
+                    if ($value === $normalized_lang){
+                        $detected = $value;
+                        break;
+                    }
                 }
-                if (substr($value,0,2) === substr($normalized_lang,0,2)){
-                    $detected = $value;
-                    break;
+                if($detected == '') {
+                    foreach ($locale_keys as &$value) {
+                        if (substr($value,0,2) === substr($normalized_lang,0,2)){
+                            $detected = $value;
+                            break;
+                        }
+                    }
                 }
             }
         }
@@ -748,6 +754,10 @@ class BablicSDK {
 				$now = round(microtime(true) * 1000);
 				$validity = ($now - (2*24*60*60*1000) > $file_modified);
 				if ($validity === false) return false;
+                $size = filesize($filename);
+                if($size==0)
+                    return false;
+
 				readfile($filename);
 				return true;
 			} else {
