@@ -91,6 +91,10 @@ class BablicSDK {
             else if(!empty($_SERVER['HTTP_X_BABLIC_REFRESH']))
                 $this->get_site_from_bablic();
 		}
+		else if(!empty($_SERVER['HTTP_X_BABLIC_REFRESH']) && strlen($_SERVER['HTTP_X_BABLIC_REFRESH']) == 24){
+		    $this->site_id = $_SERVER['HTTP_X_BABLIC_REFRESH'];
+		    $this->get_site_from_bablic();
+		}
         if($this->site_id){
             try{
                 header('x-bablic-id: '.$this->site_id);
@@ -248,11 +252,10 @@ class BablicSDK {
         $result = curl_exec($ch);
         $result = json_decode($result, true);
         if (!empty($result['error'])) {
-			if(!empty($result['error']['code']) && $result['error']['code'] == 410){
-				$this->clear_data();
-				$this->save_data_to_store();
-				return array("error" => "Site removed");
-			}
+//			if(!empty($result['error']['code']) && $result['error']['code'] == 410){
+//				$this->clear_data();
+//				return array("error" => "Site removed");
+//			}
 
             return array("error" => "Bablic returned error");
         }
@@ -614,7 +617,7 @@ class BablicSDK {
 			$this->nocache = true;
         if($this->meta){
            $meta = json_decode($this->meta, true);
-           $default = $meta['default'];
+           $default = $meta['original'];
 		   $locale = $this->get_locale();
            if ($default == $locale)
 			   return;

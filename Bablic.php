@@ -23,7 +23,7 @@ class wp_store {
 Plugin Name: Bablic
 Plugin URI: https://www.bablic.com/docs#wordpress'
 Description: Integrates your site with Bablic localization cloud service.
-Version: 2.5
+Version: 2.6
 Author: Ishai Jaffe
 Author URI: https://www.bablic.com
 License: GPLv3
@@ -40,7 +40,7 @@ class bablic {
 	var $plugin_textdomain = 'Bablic';
 	var $bablic_version = '3.9';
     var $query_var = 'bablic_locale';
-    var $bablic_plugin_version = '2.5.2';
+    var $bablic_plugin_version = '2.6.0';
 
     var $debug = false;
 	
@@ -69,16 +69,17 @@ class bablic {
 		add_action( 'plugins_loaded', array( &$this, 'before_header' ),0);
 
         //add_action('shutdown', array(&$this, 'after_header'),9999999999);
+        add_action('template_redirect', array(&$this, 'redirect_hidden'),9999999999);
 
-		
-		
+
+
 		add_filter('rewrite_rules_array', array(&$this, 'bablic_insert_rewrite_rules'));
 
         // on plugin activate/de-activate
 		register_activation_hook( __FILE__, array( &$this, 'optionsCompat' ) );
         register_activation_hook(__FILE__, array(&$this, 'flush_rules'));
         register_deactivation_hook(__FILE__, array(&$this, 'onDeactivate'));
-		
+
 		// replace all links
 		add_filter( 'post_link', array(&$this, 'append_prefix'), 10, 3 );
 		add_filter( 'page_link', array(&$this, 'append_prefix'), 10, 3 );
@@ -140,6 +141,10 @@ class bablic {
         $locale = $this->get_locale();
         if($locale == '')
             return $query;
+        if(!empty($query->query['name']))
+            return $query;
+        if(!empty($query->query['page_id']))
+            return $query;
         $meta_query = $query->get('meta_query');
         if( empty($meta_query) )
             $meta_query = array();
@@ -161,14 +166,14 @@ class bablic {
         $query->set('meta_query',$meta_query);
         return $query;
 	}
-	
+
 	function register_routes(){
 		register_rest_route('bablic', '/callback/', array(
 		    array('methods' => 'POST','callback'=> array( $this, 'test_callback' ))
 		));
 	}
-	
-	function test_callback(){       
+
+	function test_callback(){
         $rslt = $this->sdk->get_site_from_bablic();
 		echo "OK"; exit;
 	}
@@ -202,6 +207,24 @@ class bablic {
             $this->sdk->handle_request();
 	}
 
+    function redirect_hidden(){
+        $locale = $this->get_locale();
+        if($locale == '')
+            return;
+        $id = get_the_ID();
+        if(empty($id))
+            return;
+
+        $post = get_post();
+        if(!empty($post)){
+            $meta = get_post_meta($post->ID, 'hide_' . $locale, true);
+            $hideInThis = !empty($meta) && $meta == 1;
+            if($hideInThis){
+                wp_redirect($this->sdk->get_link($this->sdk->get_original(), $_SERVER['REQUEST_URI']), 301);
+                die;
+            }
+        }
+    }
 	function after_header(){
 	    // for log
 	}
@@ -223,11 +246,11 @@ class bablic {
 		    return $lang;
         return $bablic_locale;
 	}
-	
+
 	function append_prefix($url){
 		global $wp_rewrite;
 	    $is_sub_dir = ($wp_rewrite->permalink_structure) !== '';
-		$options = $this->optionsGetOptions();	
+		$options = $this->optionsGetOptions();
 		if($options['dont_permalink'] == 'yes')
 			return $url;
 
@@ -236,7 +259,7 @@ class bablic {
 			return $url;
 		return $this->sdk->get_link($locale,$url);
 	}
-	 
+
 	function flush_rules(){
 		global $wp_rewrite;
     	$wp_rewrite->flush_rules();
@@ -250,7 +273,7 @@ class bablic {
         $this->updateOptions($options);
         $wp_rewrite->flush_rules();
 	}
-	
+
 	function bablic_insert_rewrite_rules($old_rules) {
 		//print_r($old_rules);
         $new_rules = array();
@@ -265,7 +288,7 @@ class bablic {
         foreach ($old_rules as $regex => $replace) {
             $save_regex = $regex;
             $save_replace = $replace;
-			
+
             $regex = $locale_regex . $regex;
             for ($param=0; $param<=10; $param++) {
                 $replace = str_replace('[' . (9-$param) . ']', '[' . (10-$param) . ']', $replace);
@@ -276,39 +299,39 @@ class bablic {
         }
         return $new_rules;
     }
-	
+
 
 	// load i18n textdomain
 	function loadTextDomain() {
 		load_plugin_textdomain( $this->plugin_textdomain, false, trailingslashit( dirname( plugin_basename( __FILE__ ) ) ) . 'lang/' );
 	}
-	
-	
+
+
 	// compatability with upgrade from version <1.4
 	function optionsCompat() {
 		$old_options = get_option( 'ssga_item' );
 		if ( !$old_options ) return false;
-		
+
 		$defaults = optionsGetDefaults();
 		foreach( $defaults as $key => $value )
 			if( !isset( $old_options[$key] ) )
 				$old_options[$key] = $value;
-		
+
 		add_option( $this->options_name, $old_options, '', false );
 		delete_option( 'ssga_item' );
 		return true;
 	}
-	
+
 	// get default plugin options
-	function optionsGetDefaults() { 
-		$defaults = array( 
+	function optionsGetDefaults() {
+		$defaults = array(
 			'dont_permalink' => 'yes',
 			'date' => '',
 			'rated' => 'no'
 		);
 		return $defaults;
 	}
-	
+
 	function optionsGetOptions() {
 		$options = get_option( $this->options_name, $this->optionsGetDefaults() );
 		if(!$options['dont_permalink'])
@@ -329,9 +352,9 @@ class bablic {
 	    update_option($this->options_name, $options);
 	}
 
-	
+
 	// set plugin links
-	function optionsSetPluginMeta( $links, $file ) { 
+	function optionsSetPluginMeta( $links, $file ) {
 		$plugin = plugin_basename( __FILE__ );
 		if ( $file == $plugin ) { // if called for THIS plugin then:
 			$newlinks = array( '<a href="options-general.php?page=' . $this->options_page . '">' . __( 'Settings', $this->plugin_textdomain ) . '</a>' ); // array of links to add
@@ -339,9 +362,9 @@ class bablic {
 		}
         return $links; // return the $links (merged or otherwise)
 	}
-	
+
 	// plugin startup
-	function optionsInit() { 
+	function optionsInit() {
 		register_setting( $this->options_group, $this->options_name, array( &$this, 'optionsValidate' ) );
 	}
 
@@ -351,17 +374,17 @@ class bablic {
 		if($this->debug)
 		    $test = '?test=true';
 		wp_enqueue_script('bablic-admin-sdk','//cdn2.bablic.com/addons/wp24.js'. $test);
-    }  
-	
+    }
+
 	// create and link options page
 	function optionsAddPage() {
         global $my_settings_page;
 		$my_settings_page = add_options_page( $this->plugin_name . ' ' . __( 'Settings', $this->plugin_textdomain ), __( 'Bablic', $this->plugin_textdomain ), 'manage_options', $this->options_page, array( &$this, 'optionsDrawPage' ) );
 
-		
+
         add_action( 'admin_enqueue_scripts',array( &$this, 'addAdminScripts' ));
  	}
-	
+
 	function log($stuff){
 	      //array_push($this->log,$stuff);
 	}
@@ -369,19 +392,19 @@ class bablic {
 
 
 	// sanitize and validate options input
-	function optionsValidate( $input ) { 
+	function optionsValidate( $input ) {
 		return $input;
 	}
 
-	
+
 	// draw the options page
-	function optionsDrawPage() { 
+	function optionsDrawPage() {
 		$options = $this->optionsGetOptions();
 		$isFirstTime = $this->sdk->site_id == '';
 		$site = $this->sdk->get_site();
 	?>
         <div class="bablic-wp tw-bs" id="bablic_all">
-             
+
 			<label id="bablic-subdir">
 				<input type="checkbox" id="bablic_dont_permalink" <?php checked( 'no', $options['dont_permalink'], true ) ?>  > Generate sub-directory urls (for example: /es/, /fr/about, ...)
 			</label>
@@ -418,7 +441,7 @@ class bablic {
         	</div>
                 <div class="clear"></div>
         </div>
-<div class="panel">											
+<div class="panel">
 	<div class="panel-heading bablic">
 																For more information visit <a href="https://www.bablic.com">Bablic.com</a> or contact us at <a href="mailto: support@bablic.com">support@bablic.com</a>
 	</div>
@@ -427,16 +450,31 @@ class bablic {
   </div>
         </div>
 		<?php
-		
+
 		$this->sdk->refresh_site();
 		global $wp_rewrite;
 		$wp_rewrite->flush_rules();
-	} 
-	
+	}
+
+    function writeHide(){
+        $post = get_post();
+        if(!empty($post)){
+            $meta = get_post_meta($post->ID);
+            $locales = $this->sdk->get_locales();
+            if(!empty($locales)){
+                foreach($locales as $l){
+                    if(!empty($meta['hide_' . $l]) && !empty($meta['hide_'.$l][0]) && $meta['hide_'.$l][0] == 1)
+                        echo '<script>bablic.languages.hide("'.$l.'");</script>';
+                }
+            }
+        }
+    }
+
 	// 	the Bablic snippet to be inserted
-	function writeHead() { 
+	function writeHead() {
 		if(is_admin())
 		    return;
+
         echo '<!-- start Bablic Head ' . $this->bablic_plugin_version . ' -->';
         try{
 		    $this->sdk->alt_tags();
@@ -449,8 +487,10 @@ class bablic {
                 if($snippet != ''){
                     echo $snippet;
                     echo '<script>bablic.exclude("#wpadminbar,#wp-admin-bar-my-account");</script>';
+                    $this->writeHide();
                 }
             }
+
 		}
         catch (Exception $e) { echo '<!-- Bablic No Head -->'; }
         echo '<!-- end Bablic Head -->';
@@ -467,7 +507,7 @@ class bablic {
         }
         catch (Exception $e) { echo '<!-- No user meta -->'; }
     }
-	
+
 	function writeFooter(){
 		if(is_admin())
 		    return;
@@ -478,7 +518,9 @@ class bablic {
                     if($snippet != ''){
                         echo $snippet;
                         echo '<script>bablic.exclude("#wpadminbar,#wp-admin-bar-my-account");</script>';
+                        $this->writeHide();
                     }
+
                     echo '<!-- end Bablic Footer -->';
                 }
             }
@@ -493,6 +535,7 @@ class bablic {
             echo $snippet;
             echo '<script>bablic.markup("url","form","ignore");</script>';
             echo '<script>bablic.exclude("#wpadminbar,#wp-admin-bar-my-account");</script>';
+            $this->writeHide();
         }
         echo '<!-- end Bablic Head -->';
 
