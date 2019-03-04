@@ -74,7 +74,7 @@ class BablicSDK {
         }
         if(!empty($options['test']) && $options['test']){
             $this->bablic_base = 'http://staging.bablic.com';
-            $this->bablic_seo_base = 'http://staging.bablic.com';
+            $this->bablic_seo_base = 'http://seo-test.bablic.com';
         }
 
         $this->channel_id = $options['channel_id'];
@@ -199,16 +199,20 @@ class BablicSDK {
         $payload = array(
             'callback' => $callback
         );
-        $ch = curl_init($url);
-        curl_setopt($ch, CURLOPT_SSL_VERIFYHOST, 0);
-        curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, 0);
-        curl_setopt($ch, CURLOPT_HEADER, false);
-        curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
-        curl_setopt($ch, CURLOPT_HTTPHEADER, array("Content-type: application/json","X-HTTP-Method-Override:PUT","Expect:"));
-        curl_setopt($ch, CURLOPT_POST, true);
-        curl_setopt($ch, CURLOPT_POSTFIELDS, json_encode($payload));
-        $result = curl_exec($ch);
-        $result = json_decode($result, true);
+
+        $args = array(
+            'body' => $payload,
+            'timeout' => '30',
+            'redirection' => '5',
+            'httpversion' => '1.0',
+            'blocking' => true,
+            'headers' => array("Content-type: application/json","X-HTTP-Method-Override:PUT","Expect:"),
+            'cookies' => array()
+        );
+
+        $response = wp_remote_post( $url, $args );
+        $result = json_decode(wp_remote_retrieve_body( $response ), true);
+
         if (!empty($result['error'])) {
             return array("error" => "Bablic returned error");
         }
@@ -222,16 +226,20 @@ class BablicSDK {
             'original' => isset($options['original_locale']) ? $options['original_locale'] : '',
             'callback' => isset($options['callback']) ? $options['callback'] : '',
         );
-        $ch = curl_init($url);
-        curl_setopt($ch, CURLOPT_SSL_VERIFYHOST, 0);
-        curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, 0);
-        curl_setopt($ch, CURLOPT_HEADER, false);
-        curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
-        curl_setopt($ch, CURLOPT_HTTPHEADER, array("Content-type: application/json","Expect:"));
-        curl_setopt($ch, CURLOPT_POST, true);
-        curl_setopt($ch, CURLOPT_POSTFIELDS, json_encode($payload));
-        $result = curl_exec($ch);
-        $result = json_decode($result, true);
+
+        $args = array(
+            'body' => $payload,
+            'timeout' => '30',
+            'redirection' => '5',
+            'httpversion' => '1.0',
+            'blocking' => true,
+            'headers' => array("Content-type: application/json","Expect:")),
+            'cookies' => array()
+        );
+
+        $response = wp_remote_post( $url, $args );
+        $result = json_decode(wp_remote_retrieve_body( $response ), true);
+
         if (!empty($result['error'])) {
             return array("error" => "Bablic returned error");
         }
@@ -246,11 +254,11 @@ class BablicSDK {
 
     public function get_site_from_bablic() {
         $url = $this->bablic_base . "/api/v1/site/$this->site_id?access_token=$this->access_token&channel_id=$this->channel_id";
-        $ch = curl_init();
-        curl_setopt($ch, CURLOPT_URL, $url);
-        curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
-        $result = curl_exec($ch);
-        $result = json_decode($result, true);
+
+
+        $response = wp_remote_get( $url );
+        $result = json_decode(wp_remote_retrieve_body( $response ), true);
+
         if (!empty($result['error'])) {
 //			if(!empty($result['error']['code']) && $result['error']['code'] == 410){
 //				$this->clear_data();
@@ -595,13 +603,13 @@ class BablicSDK {
 
     public function remove_site(){
         $url = $this->bablic_base . "/api/v1/site/$this->site_id?access_token=$this->access_token&channel_id=$this->channel_id";
-        $ch = curl_init();
-        curl_setopt($ch, CURLOPT_URL, $url);
-        curl_setopt($ch, CURLOPT_CUSTOMREQUEST, "DELETE");
-        $result = curl_exec($ch);
-        $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+
+        $response = wp_remote_request( $url ,
+            array(
+                'method'     => 'DELETE'
+            ));
+        $httpCode = wp_remote_retrieve_response_code( $response );
 		$this->clear_data();
-        curl_close($ch);
     }
 
     public function handle_request($options=array()) {
@@ -704,27 +712,33 @@ class BablicSDK {
     private function send_to_bablic($url, $html) {
         $bablic_url = $this->bablic_seo_base . "/api/engine/seo?site=$this->site_id&url=".urlencode($url).($this->subdir ? "&ld=subdir" : "").($this->subdir_base ? "&sdb=" .urlencode($this->subdir_base) : "");
         $bablic_url .= '&folders='.urlencode(json_encode($this->folders));
-        $curl = curl_init($bablic_url);
-		$length = strlen($html);
-        curl_setopt($curl, CURLOPT_SSL_VERIFYHOST, 0);
-        curl_setopt($curl, CURLOPT_SSL_VERIFYPEER, 0);
-        curl_setopt($curl, CURLOPT_HEADER, false);
-        curl_setopt($curl, CURLOPT_RETURNTRANSFER, true);
-        curl_setopt($curl, CURLOPT_HTTPHEADER, array("Content-type: text/html", "Content-Length: $length","Expect:"));
-        curl_setopt($curl, CURLOPT_POST, true);
+
+        $length = strlen($html);
+
+        $args = array(
+            'body' => $html,
+            'timeout' => '30',
+            'redirection' => '5',
+            'httpversion' => '1.0',
+            'blocking' => true,
+            'headers' => array("Content-type: text/html", "Content-Length:".$length.","Expect:"),
+            'cookies' => array()
+        );
+
 		$this->_body = $html;
 		$this->pos = 0;
-        curl_setopt($curl, CURLOPT_READFUNCTION, array(&$this,'write_buffer'));
 
-        $response = curl_exec($curl);
-        $status = curl_getinfo($curl, CURLINFO_HTTP_CODE);
+        $response = wp_remote_post( $bablic_url, $args );
+        $result = wp_remote_retrieve_body( $response );
+
+        $status = wp_remote_retrieve_response_code( $response );
+
         if (($status != 200 ) && ($status != 301)) {
             return $html;
         }
 
-        curl_close($curl);
-        $this->save_html($response, $this->full_path_from_url($url));
-        return $response;
+        $this->save_html($result, $this->full_path_from_url($url));
+        return $result;
     }
 
     private function save_html($content, $filename) {
