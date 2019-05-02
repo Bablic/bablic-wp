@@ -41,6 +41,7 @@ class bablic {
 	var $bablic_version = '3.9';
     var $query_var = 'bablic_locale';
     var $bablic_plugin_version = '2.6.0';
+    var $bablic_data_file;
 
     var $debug = false;
 	
@@ -54,6 +55,7 @@ class bablic {
 
 	// constructor
 	function __construct() {
+	    $this->bablic_data_file = get_template_directory().'bablic_data_file.dat';
 		$options = $this->optionsGetOptions();
 		add_filter( 'plugin_row_meta', array( &$this, 'optionsSetPluginMeta' ), 10, 2 ); // add plugin page meta links
 		// plugin startup
@@ -396,12 +398,58 @@ class bablic {
 		return $input;
 	}
 
+    function readSiteFromFile(){
+        if (file_exists($this->bablic_data_file)){
+            try{
+                $siteData = file_get_contents($this->bablic_data_file);
+                $site = unserialize($siteData);
+                return $site;
+            }
+            catch (Exception $e) { }
+        }
+
+        return false;
+    }
+
+    function writeSiteToFile($site){
+        try{
+            if (is_writable($this->bablic_data_file)) {
+              // save site object to file
+              $siteData = serialize( $site);
+              $fp = fopen($this->bablic_data_file, "w");
+              fwrite($fp, $siteData);
+              fclose($fp);
+            }
+        }
+        catch (Exception $e) { }
+
+    }
+
+    function removeSiteFromFile(){
+        if (file_exists($this->bablic_data_file)){
+            try {
+                // delete file
+                unlink($this->bablic_data_file);
+            }
+            catch (Exception $e) { }
+        }
+    }
+
 
 	// draw the options page
 	function optionsDrawPage() {
 		$options = $this->optionsGetOptions();
 		$isFirstTime = $this->sdk->site_id == '';
 		$site = $this->sdk->get_site();
+
+        // if no site id but there is a file in disk then read from file
+        if ($site['site_id'] == "" && file_exists($this->bablic_data_file)){
+            $siteFromFile = $this->readSiteFromFile();
+            if ( $siteFromFile != false){
+                $site = $siteFromFile;
+            }
+        }
+
 	?>
         <div class="bablic-wp tw-bs" id="bablic_all">
 
@@ -606,6 +654,7 @@ class bablic {
                 $site = $data['site'];
                 $url = get_site_url();
                 $this->sdk->set_site($site,"$url/wp-json/bablic/callback");
+
                 break;
             case 'subdir':
                 $options = $this->optionsGetOptions();
@@ -630,11 +679,22 @@ class bablic {
                 $options['uninstalled'] = '';
                 $this->updateOptions($options);
                 $this->sdk->remove_site();
+
                 break;
         }
 		$this->sdk->clear_cache();
+
+		$site = $this->sdk->get_site();
+        if ($site['site_id'] != ""){
+            // save site to disk
+            $this->writeSiteToFile($site);
+        }else{
+            // delete site file from disk
+            $this->removeSiteFromFile();
+        }
+
         echo json_encode(array(
-            'site' => $this->sdk->get_site()
+            'site' => $site
         )); exit;
         return;
     }

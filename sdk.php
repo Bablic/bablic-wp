@@ -233,7 +233,7 @@ class BablicSDK {
             'redirection' => '5',
             'httpversion' => '1.0',
             'blocking' => true,
-            'headers' => array("Content-type: application/json","Expect:")),
+            'headers' => array("Content-type: application/json","Expect:"),
             'cookies' => array()
         );
 
