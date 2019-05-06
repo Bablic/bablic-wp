@@ -55,7 +55,7 @@ class bablic {
 
 	// constructor
 	function __construct() {
-	    $this->bablic_data_file = get_template_directory().'bablic_data_file.dat';
+	    $this->bablic_data_file = get_template_directory().'/bablic_data_file.dat';
 		$options = $this->optionsGetOptions();
 		add_filter( 'plugin_row_meta', array( &$this, 'optionsSetPluginMeta' ), 10, 2 ); // add plugin page meta links
 		// plugin startup
@@ -112,12 +112,32 @@ class bablic {
 
         add_action('wp_ajax_bablicSettings',array(&$this, 'bablic_settings_save'));
 		add_action( 'rest_api_init', array( $this, 'register_routes' ) );
+
+
+
+		$store = new wp_store();
+
+		// check if locale db does not include the site id but the bablic data file exists
+        if ($store->get('site_id') == '' && file_exists($this->bablic_data_file)){
+            $siteFromFile = $this->readSiteFromFile();
+            if ( $siteFromFile != false){
+                $store->set('meta', $siteFromFile['meta']);
+                $store->set('access_token', $siteFromFile['access_token']);
+                $store->set('version', $siteFromFile['version']);
+                $store->set('trial_started', $siteFromFile['trial_started']?'1':'');
+                $store->set('snippet', $siteFromFile['snippet']);
+                $store->set('site_id', $siteFromFile['site_id']);
+                $store->set('time',$siteFromFile['timestamp']);
+            }
+        }
+
+
 		$this->sdk = new BablicSDK(
             array(
                 'channel_id' => 'wp',
                 'subdir' => $options['dont_permalink'] == 'no',
                 'subdir_base' => $this->getDirBase(),
-                'store' => new wp_store(),
+                'store' => $store,
                 'test' => $this->debug,
                 'folders' => array()
             )
@@ -125,7 +145,6 @@ class bablic {
 
         if($options['dont_permalink'] == 'no')
             remove_filter('template_redirect','redirect_canonical');
-
 	}
 
 /*    function add_meta_fields() {
@@ -413,13 +432,11 @@ class bablic {
 
     function writeSiteToFile($site){
         try{
-            if (is_writable($this->bablic_data_file)) {
-              // save site object to file
-              $siteData = serialize( $site);
-              $fp = fopen($this->bablic_data_file, "w");
-              fwrite($fp, $siteData);
-              fclose($fp);
-            }
+          // save site object to file
+          $siteData = serialize( $site);
+          $fp = fopen($this->bablic_data_file, "w");
+          fwrite($fp, $siteData);
+          fclose($fp);
         }
         catch (Exception $e) { }
 
@@ -442,13 +459,6 @@ class bablic {
 		$isFirstTime = $this->sdk->site_id == '';
 		$site = $this->sdk->get_site();
 
-        // if no site id but there is a file in disk then read from file
-        if ($site['site_id'] == "" && file_exists($this->bablic_data_file)){
-            $siteFromFile = $this->readSiteFromFile();
-            if ( $siteFromFile != false){
-                $site = $siteFromFile;
-            }
-        }
 
 	?>
         <div class="bablic-wp tw-bs" id="bablic_all">
