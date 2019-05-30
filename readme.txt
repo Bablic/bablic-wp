@@ -3,7 +3,7 @@
 Contributors: ishaijaffe
 Tags: translate, translation, translate website, translate wordpress, wordpress translation, localization, multilingual, bilingual, translation proxy, bablic, i18n, l10n, 翻译, 翻譯, traducir, ترجمه, traduzir, 翻訳する, переведите, menterjemah, Traduire, Übersetzen
 Requires at least: 3.0
-Tested up to: 4.8
+Tested up to: 5.2
 Stable tag: trunk
 License: GPLv2 or later
 License URI: http://www.gnu.org/licenses/gpl-2.0.html
