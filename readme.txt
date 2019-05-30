@@ -173,6 +173,10 @@ Translate your Wordpress with no coding skills. It’s fast, easy and affordable
 
 == Changelog ==
 
+= 2.7 =
+* Recover from DB data loss
+* Fix cache expire
+
 = 2.6 =
 * Bug fixes
 * Fix translate elements 
