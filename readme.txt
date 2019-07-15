@@ -1,4 +1,4 @@
-=== Translate Your WP Website Hassle Free!  ===
+﻿=== Translate Your WP Website Hassle Free!  ===
 
 Contributors: ishaijaffe
 Tags: translate, translation, translate website, translate wordpress, wordpress translation, localization, multilingual, bilingual, translation proxy, bablic, i18n, l10n, 翻译, 翻譯, traducir, ترجمه, traduzir, 翻訳する, переведите, menterjemah, Traduire, Übersetzen
@@ -22,7 +22,7 @@ Literally, the easiest, smartest and most efficient way to **translate your Word
 
 You have **14 days to try Bablic for free**! No coding skills and no credit card needed. With our *cancel anytime* policy, you can’t go wrong.
 
-Try it now for FREE on [bablic.com](https://www.bablic.com/?utm_source=WPP) - simply enter your Wordpress website's URL on our homepage, and **get an instant preview of your website in any language**.
+Try it now for FREE on [bablic.com](https://www.bablic.com/) - simply enter your Wordpress website's URL on our homepage, and **get an instant preview of your website in any language**.
 
 
 **How Does Bablic Translate Work?**
@@ -169,7 +169,7 @@ The manual installation method is a bit more technical and requires an FTP clien
 4. Click on Settings under the Plugins description.
 5. Click on **START NOW** and enter the details used to sign up on Bablic.com.
 
-Translate your Wordpress with no coding skills. It’s fast, easy and affordable. [Start using Bablic Translate today](https://www.bablic.com/?utm_source=WPP)!
+Translate your Wordpress with no coding skills. It’s fast, easy and affordable. [Start using Bablic Translate today](https://www.bablic.com/)!
 
 == Changelog ==
 
