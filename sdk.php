@@ -350,14 +350,14 @@ class BablicSDK {
         $str = '';
         if(is_array($locale_keys)){
             foreach( $locale_keys as $alt){
-                if($alt != $locale) {
-                    $parts = explode('_', $alt);
-                    $iso = sizeof($parts) > 1 ? $parts[0].'-'.strtoupper($parts[1]) : $parts[0];
-                    array_push($res, array($this->get_link($alt, $url), $iso));
-                }
+            //    if($alt != $locale) {
+		    $parts = explode('_', $alt);
+		    $iso = sizeof($parts) > 1 ? $parts[0].'-'.strtoupper($parts[1]) : $parts[0];
+		    array_push($res, array($this->get_link($alt, $url), $iso));
+              //  }
             }
-            if($locale != $meta['original'])
-                $str .= '<link rel="alternate" href="' . $this->get_link($meta['original'],$url) . '" hreflang="x-default">';
+            // if($locale != $meta['original'])
+            $str .= '<link rel="alternate" href="' . $this->get_link($meta['original'],$url) . '" hreflang="x-default">';
         }
         return $str;
     }
@@ -369,13 +369,13 @@ class BablicSDK {
         $url = $_SERVER['REQUEST_URI'];
         if(is_array($locale_keys)){
             foreach( $locale_keys as $alt){
-                if($alt != $locale) {
+                //if($alt != $locale) {
                     $parts = explode('_', $alt);
                     $iso = sizeof($parts) > 1 ? $parts[0].'-'.strtoupper($parts[1]) : $parts[0];
                     echo '<link rel="alternate" href="' . $this->get_link($alt,$url) . '" hreflang="'.$iso.'">';
-                }
+                //}
             }
-            if($locale != $meta['original'])
+            //if($locale != $meta['original'])
                 echo '<link rel="alternate" href="' . $this->get_link($meta['original'],$url) . '" hreflang="x-default">';
         }
     }
