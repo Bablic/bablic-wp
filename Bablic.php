@@ -40,7 +40,7 @@ class bablic {
 	var $plugin_textdomain = 'Bablic';
 	var $bablic_version = '3.9';
     var $query_var = 'bablic_locale';
-    var $bablic_plugin_version = '2.8.0';
+    var $bablic_plugin_version = '2.8.1';
     var $bablic_data_file;
 
     var $debug = false;
