@@ -769,7 +769,7 @@ class BablicSDK {
 			if ($html_file) {
 				$file_modified = filemtime($filename);
 				$now = time();
-				$validity = ($now - (2*24*60*60) > $file_modified);
+				$validity = ($now - (2*24*60*60) < $file_modified);
 				if ($validity === false) return false;
                 $size = filesize($filename);
                 if($size==0)
