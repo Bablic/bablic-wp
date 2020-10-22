@@ -67,6 +67,7 @@ class BablicSDK {
 	private $bablic_seo_base = 'http://seo.bablic.com';
 	private $_locale = '';
     private $folders = array();
+    private $site_url = '';
 
     function __construct($options) {
         if (empty($options['channel_id'])){
@@ -120,6 +121,9 @@ class BablicSDK {
             $this->use_snippet_url = true;
         if (!empty($options['folders'])) {
             $this->folders = $options['folders'];
+        }
+        if (!empty($options['site_url'])) {
+            $this->site_url = $options['site_url'];
         }
     }
 
@@ -277,7 +281,7 @@ class BablicSDK {
         $this->timestamp = time();
         $this->save_data_to_store();
     }
-	
+
 	public function refresh_site(){
 		$this->get_site_from_bablic();
 	}
@@ -290,7 +294,7 @@ class BablicSDK {
 		}
         array_map('unlink', glob("$folder/*"));
     }
-    
+
     public function get_meta() {
       return $this->meta;
     }
@@ -347,6 +351,10 @@ class BablicSDK {
         $locale_keys = $meta['localeKeys'];
         $locale = $this->get_locale();
         $url = $_SERVER['REQUEST_URI'];
+        if($this->site_url != ''){
+            $url = $this->site_url . $url;
+        }
+
         $str = '';
         if(is_array($locale_keys)){
             foreach( $locale_keys as $alt){
@@ -367,6 +375,9 @@ class BablicSDK {
         $locale_keys = $meta['localeKeys'];
         $locale = $this->get_locale();
         $url = $_SERVER['REQUEST_URI'];
+        if($this->site_url != ''){
+            $url = $this->site_url . $url;
+        }
         if(is_array($locale_keys)){
             foreach( $locale_keys as $alt){
                 //if($alt != $locale) {
@@ -479,6 +490,7 @@ class BablicSDK {
                 }
                 $locale_regex = '('.implode('|', $locale_keys).')';
                 $path = preg_replace('/^\/?'.$locale_regex.'\//', '/', $path);
+                $path = preg_replace('/^\/?'.$locale_regex.'$/', '/', $path);
 
                 return $scheme.$host.$port.$this->subdir_base.$prefix.$path.$query.$fragment;
             case 'hash':

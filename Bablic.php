@@ -139,7 +139,8 @@ class bablic {
                 'subdir_base' => $this->getDirBase(),
                 'store' => $store,
                 'test' => $this->debug,
-                'folders' => array()
+                'folders' => array(),
+                'site_url' => get_site_url()
             )
         );
 
