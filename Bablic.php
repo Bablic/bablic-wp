@@ -23,7 +23,7 @@ class wp_store {
 Plugin Name: Bablic
 Plugin URI: https://www.bablic.com/docs#wordpress'
 Description: Integrates your site with Bablic localization cloud service.
-Version: 2.9
+Version: 2.10
 Author: Ishai Jaffe
 Author URI: https://www.bablic.com
 License: GPLv3
@@ -98,9 +98,6 @@ class bablic {
 		add_filter( 'tag_link', array(&$this, 'append_prefix'), 10, 3 );
 		add_filter( 'term_link', array(&$this, 'append_prefix'), 10, 3 );
 
-		// get locale hook
-		//add_filter('locale', array(&$this, 'get_locale'));
-
 
         add_action( 'admin_notices', array(&$this, 'bablic_admin_messages') );
 
@@ -147,17 +144,6 @@ class bablic {
         if($options['dont_permalink'] == 'no')
             remove_filter('template_redirect','redirect_canonical');
 	}
-
-/*    function add_meta_fields() {
-        $locales = $this->sdk->get_locales();
-        for($locales as $locale){
-            add_meta_box( 'hide-in-language-' . $locale, 'Hide in ' . strtoupper($locale), array(&$this, 'display_meta_box'), 'post' );
-        }
-    }
-
-    function display_meta_box(){
-
-    }*/
 
 	function filter_posts($query){
         $locale = $this->get_locale();
