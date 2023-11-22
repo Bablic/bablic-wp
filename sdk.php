@@ -242,7 +242,7 @@ class BablicSDK {
             'httpversion' => '1.1',
             'blocking' => true,
             'headers' => array(
-                "Content-type" => "application/json",
+                "Content-type" => "application/x-www-form-urlencoded",
                 "Expect" => ""
             ),
             'cookies' => array()
