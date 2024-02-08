@@ -316,30 +316,30 @@ class BablicSDK {
         );
     }
 
-    public function get_snippet() {
+    public function get_snippet($is_async) {
         if($this->subdir){
             $locale = $this->get_locale();
-            return '<script type="text/javascript">var bablic=bablic||{};bablic.localeURL="subdir";bablic.subDirBase="'.$this->subdir_base.'";</script>'.$this->snippet;
+            return '<script'.($is_async ? ' async' : '').' type="text/javascript">var bablic=bablic||{};bablic.localeURL="subdir";bablic.subDirBase="'.$this->subdir_base.'";</script>'.$this->snippet;
         }
         return $this->snippet;
     }
 
     public function get_bablic_top(){
-        return '<!-- start Bablic Head -->'.$this->get_alt_tags().($this->get_locale() != $this->get_original() ? $this->get_snippet() : '') . '<!-- end Bablic Head -->';
+        return '<!-- start Bablic Head -->'.$this->get_alt_tags().($this->get_locale() != $this->get_original() ? $this->get_snippet(false) : '') . '<!-- end Bablic Head -->';
     }
 
     public function bablic_top(){
         echo '<!-- start Bablic Head -->';
         $this->alt_tags();
         if($this->get_locale() != $this->get_original()){
-            echo $this->get_snippet();
+            echo $this->get_snippet(false);
         }
         echo '<!-- end Bablic Head -->';
     }
 
     public function get_bablic_bottom(){
         if($this->get_locale() == $this->get_original()){
-            return '<!-- start Bablic Footer -->'. $this->get_snippet() . '<!-- end Bablic Footer -->';
+            return '<!-- start Bablic Footer -->'. $this->get_snippet(true) . '<!-- end Bablic Footer -->';
         }
         return '';
     }
@@ -348,7 +348,7 @@ class BablicSDK {
     public function bablic_bottom(){
         if($this->get_locale() == $this->get_original()){
 			echo '<!-- start Bablic Footer -->';
-			echo $this->get_snippet();
+			echo $this->get_snippet(true);
 			echo '<!-- end Bablic Footer -->';
 		}
     }
@@ -578,11 +578,10 @@ class BablicSDK {
 
                         return $this->getLocaleFromFolder($folder, $locale_keys);
                     }
-
                     return $matches[2];
                 }
                 if ($from_cookie) {
-                    return $default;
+                    return $from_cookie;
                 }
                 if ($detected) {
                     return $detected;

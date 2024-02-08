@@ -23,7 +23,7 @@ class wp_store {
 Plugin Name: Bablic
 Plugin URI: https://www.bablic.com/docs#wordpress'
 Description: Integrates your site with Bablic localization cloud service.
-Version: 2.10
+Version: 2.11
 Author: Ishai Jaffe
 Author URI: https://www.bablic.com
 License: GPLv3
@@ -38,9 +38,9 @@ class bablic {
 	var $bablic_docs = 'http://help.bablic.com/';
 	var $plugin_name = 'Bablic';
 	var $plugin_textdomain = 'Bablic';
-	var $bablic_version = '3.9';
+	var $bablic_version = '5.0';
     var $query_var = 'bablic_locale';
-    var $bablic_plugin_version = '2.10.0';
+    var $bablic_plugin_version = '2.11.0';
     var $bablic_data_file;
 
     var $debug = false;
@@ -64,8 +64,6 @@ class bablic {
 		add_action( 'admin_menu', array( &$this, 'optionsAddPage' ) ); // add link to plugin's settings page in 'settings' menu on admin menu initilization
 		// add code in HTML head
 		add_action( 'wp_head', array( &$this, 'writeHead' ));
-		add_action( 'wp_footer', array( &$this, 'writeFooter' ));
-
         add_action('login_head', array( &$this, 'writeBoth' ));
 		// before process buffer
 		add_action( 'plugins_loaded', array( &$this, 'before_header' ),0);
@@ -297,7 +295,6 @@ class bablic {
 	}
 
 	function bablic_insert_rewrite_rules($old_rules) {
-		//print_r($old_rules);
         $new_rules = array();
 		$options = $this->optionsGetOptions();
 		if($options['dont_permalink'] == 'yes')
@@ -541,15 +538,13 @@ class bablic {
 		catch (Exception $e) { echo '<!-- Bablic No Alt Tags -->'; }
 		$locale = $this->sdk->get_locale();
 		try{
-            if($locale != $this->sdk->get_original()){
-                $snippet = $this->sdk->get_snippet();
-                if($snippet != ''){
-                    echo $snippet;
-                    echo '<script>bablic.exclude("#wpadminbar,#wp-admin-bar-my-account");</script>';
-                    $this->writeHide();
-                }
+		    $is_async = $locale == $this->sdk->get_original();
+            $snippet = $this->sdk->get_snippet($is_async);
+            if($snippet != ''){
+                echo $snippet;
+                echo '<script>bablic.exclude("#wpadminbar,#wp-admin-bar-my-account");</script>';
+                $this->writeHide();
             }
-
 		}
         catch (Exception $e) { echo '<!-- Bablic No Head -->'; }
         echo '<!-- end Bablic Head -->';
@@ -560,36 +555,17 @@ class bablic {
                 $metaLocale = get_user_meta($user_id,'bablic_locale',true);
                 if($metaLocale != $locale){
                     update_user_meta($user_id,'bablic_locale',$locale);
-                    echo '<!-- Set User Language '.$user_id . ' '.$locale.' -->';
                 }
             }
         }
-        catch (Exception $e) { echo '<!-- No user meta -->'; }
+        catch (Exception $e) {
+        }
     }
-
-	function writeFooter(){
-		if(is_admin())
-		    return;
-            try{
-                if($this->sdk->get_locale() == $this->sdk->get_original()){
-                    echo '<!-- start Bablic Footer -->';
-                    $snippet = $this->sdk->get_snippet();
-                    if($snippet != ''){
-                        echo $snippet;
-                        echo '<script>bablic.exclude("#wpadminbar,#wp-admin-bar-my-account");</script>';
-                        $this->writeHide();
-                    }
-
-                    echo '<!-- end Bablic Footer -->';
-                }
-            }
-            catch (Exception $e) { echo '<!-- Bablic No Footer -->'; }
-	}
 
 	function writeBoth(){
         echo '<!-- start Bablic Head '. $this->bablic_plugin_version .' -->';
 		$this->sdk->alt_tags();
-        $snippet = $this->sdk->get_snippet();
+        $snippet = $this->sdk->get_snippet(false);
         if($snippet != ''){
             echo $snippet;
             echo '<script>bablic.markup("url","form","ignore");</script>';
@@ -603,7 +579,6 @@ class bablic {
 	function bablic_admin_messages() {
 	    try{
 			$options = $this->optionsGetOptions();
-			//print_r $options;
 			$install_date = $options['date'];
 			$display_date = date('Y-m-d h:i:s');
 			$datetime1 = $install_date;
@@ -611,7 +586,7 @@ class bablic {
 			$diff_intrval = round(($datetime2->format('U') - $datetime1->format('U')) / (60*60*24));
 			if($diff_intrval >= 7 && $options['rated'] == 'no') {
 			 echo '<div class="bablic_fivestar" style="box-shadow: 0 1px 1px 0 rgba(0,0,0,.1);">
-				<p>Love Bablic? Help us by rating it 5? on <a href="https://wordpress.org/support/view/plugin-reviews/bablic" class="thankyou bablicRate" target="_new" title="Ok, you deserved it" style="font-weight:bold;">WordPress.org</a> 
+				<p>Love Bablic? Help us by rating it 5? on <a href="https://wordpress.org/support/view/plugin-reviews/bablic" class="thankyou bablicRate" target="_new" title="Ok, you deserved it" style="font-weight:bold;">WordPress.org</a>
 				&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<a href="javascript:void(0);" class="bablicHideRating" style="font-weight:bold; font-size:9px;">Don\'t show again</a>
 				</p>
 			</div>
@@ -709,7 +684,7 @@ class bablic {
         )); exit;
         return;
     }
-	
+
 } // end class
 
 $bablic_instance = new bablic;
