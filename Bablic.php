@@ -205,6 +205,7 @@ class bablic {
             array(
                 'site_url' => $url,
                 'callback' => "$url/wp-json/bablic/callback",
+                'token' => $_POST['token'],
             )
         );
         if (!empty($rslt['error']))

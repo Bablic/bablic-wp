@@ -233,6 +233,7 @@ class BablicSDK {
             'email'=> isset($options['email']) ? $options['email'] : '',
             'original' => isset($options['original_locale']) ? $options['original_locale'] : '',
             'callback' => isset($options['callback']) ? $options['callback'] : '',
+            'token' => $options['token'],
         );
 
         $args = array(
