@@ -23,7 +23,7 @@ class wp_store {
 Plugin Name: Bablic
 Plugin URI: https://www.bablic.com/docs#wordpress'
 Description: Integrates your site with Bablic localization cloud service.
-Version: 2.11
+Version: 2.13
 Author: Ishai Jaffe
 Author URI: https://www.bablic.com
 License: GPLv3
@@ -34,13 +34,13 @@ class bablic {
 	var $options_name = 'bablic_item';
 	var $options_group = 'bablic_option_option';
 	var $options_page = 'bablic';
-	var $plugin_homepage = 'http://help.bablic.com/integrations/translate-your-wordpress-site-with-bablic';
-	var $bablic_docs = 'http://help.bablic.com/';
+	var $plugin_homepage = 'https://help.bablic.com/integrations/translate-your-wordpress-site-with-bablic';
+	var $bablic_docs = 'https://help.bablic.com/';
 	var $plugin_name = 'Bablic';
 	var $plugin_textdomain = 'Bablic';
 	var $bablic_version = '5.0';
     var $query_var = 'bablic_locale';
-    var $bablic_plugin_version = '2.11.0';
+    var $bablic_plugin_version = '2.13.0';
     var $bablic_data_file;
 
     var $debug = false;
